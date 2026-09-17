@@ -12,9 +12,9 @@ export default function Cart() {
           <div className="w-24 h-24 mx-auto mb-8 rounded-full bg-[#f4f4f5] flex items-center justify-center">
             <ShoppingBag className="w-10 h-10 text-neutral-400 stroke-[1.5]" />
           </div>
-          <h2 className="text-3xl font-display font-bold text-neutral-900 mb-4">Your basket is empty</h2>
+          <h2 className="text-3xl font-display font-bold text-neutral-900 mb-4">Your cart is empty</h2>
           <p className="text-neutral-500 mb-10 leading-relaxed max-w-sm mx-auto text-[15px]">
-            It looks like you haven't added any premium software to your basket yet. Start exploring our marketplace.
+            It looks like you haven't added any premium software to your cart yet. Start exploring our marketplace.
           </p>
           <Link
             to="/shop"
@@ -55,7 +55,7 @@ export default function Cart() {
                   <div className="flex-1">
                     <h3 className="font-bold text-neutral-900 line-clamp-1">{item.name}</h3>
                     <p className="text-sm text-neutral-500 mb-2">{item.category}</p>
-                    <span className="font-bold text-brand-500">Rs. {item.price.toLocaleString()}</span>
+                    <div className="font-bold text-brand-500 text-lg">Rs. {item.price.toLocaleString()}</div>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center bg-neutral-50 rounded-lg p-1">
@@ -84,16 +84,16 @@ export default function Cart() {
               ))}
             </div>
 
-            <div className="bg-white p-6 rounded-3xl border border-neutral-100 h-fit">
+            <div className="bg-[#f8f9fa] p-6 rounded-3xl h-fit border-none">
               <h3 className="font-bold text-xl text-neutral-900 mb-6">Order Summary</h3>
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between text-neutral-500">
                   <span>Items ({getCartCount()})</span>
                   <span>Rs. {getCartTotal().toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-neutral-500">
+                <div className="flex justify-between items-start gap-4 text-neutral-500">
                   <span>Taxes</span>
-                  <span>Calculated at checkout</span>
+                  <span className="text-right max-w-[150px] leading-tight">Calculated at checkout</span>
                 </div>
                 <div className="border-t border-neutral-100 pt-4 flex justify-between items-end">
                   <span className="font-bold text-neutral-900">Total</span>

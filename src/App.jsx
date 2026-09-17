@@ -14,11 +14,23 @@ import ShippingReturns from './pages/ShippingReturns'
 import TermsOfService from './pages/TermsOfService'
 import { CartProvider } from './context/CartContext'
 
+// Admin imports
+import AdminLayout from './layouts/AdminLayout'
+import Overview from './pages/admin/Overview'
+import Products from './pages/admin/Products'
+import Categories from './pages/admin/Categories'
+import Orders from './pages/admin/Orders'
+import Transactions from './pages/admin/Transactions'
+import Settings from './pages/admin/Settings'
+import Messages from './pages/admin/Messages'
+import Team from './pages/admin/Team'
+
 function App() {
   return (
     <CartProvider>
       <BrowserRouter>
       <Routes>
+        {/* Storefront Routes */}
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
@@ -32,6 +44,18 @@ function App() {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/shipping" element={<ShippingReturns />} />
           <Route path="/terms" element={<TermsOfService />} />
+        </Route>
+
+        {/* Admin Routes */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Overview />} />
+          <Route path="products" element={<Products />} />
+          <Route path="categories" element={<Categories />} />
+          <Route path="orders" element={<Orders />} />
+          <Route path="transactions" element={<Transactions />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="messages" element={<Messages />} />
+          <Route path="team" element={<Team />} />
         </Route>
       </Routes>
     </BrowserRouter>

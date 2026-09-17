@@ -1,13 +1,46 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Monitor, Eye, EyeOff, LogIn, Mail, Lock, ShieldCheck, Zap, Globe } from 'lucide-react'
+import { signInWithEmailAndPassword } from 'firebase/auth'
+import { auth } from '../lib/firebase'
+import { api } from '../lib/api'
 
 export default function Login() {
   const [showPass, setShowPass] = useState(false)
   const [form, setForm] = useState({ email: '', password: '' })
+  const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
+  const location = useLocation()
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
+    setError(null)
+    setLoading(true)
+
+    try {
+      // 1. Sign in with Firebase Client Auth
+      const userCredential = await signInWithEmailAndPassword(auth, form.email, form.password)
+      const user = userCredential.user
+      
+      // 2. Get ID Token
+      const idToken = await user.getIdToken()
+      
+      // 3. Send ID Token to our backend to create a session cookie
+      await api.post('/auth/session', { idToken })
+      
+      // 4. Redirect. If coming from a protected route (like /admin), go back there.
+      // Otherwise go to admin by default if they are admin, but we don't know role yet.
+      // Easiest is just send to /admin, and if they aren't admin, it will redirect them out.
+      const from = location.state?.from?.pathname || '/admin'
+      window.location.href = from // use window.location to force full reload and cookie pickup
+      
+    } catch (err) {
+      console.error(err)
+      setError('Invalid email or password.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -79,6 +112,12 @@ export default function Login() {
           <h2 className="text-3xl font-display font-bold text-neutral-900 mb-2">Welcome back</h2>
           <p className="text-neutral-500 mb-8">Sign in to your account to continue</p>
 
+          {error && (
+            <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium mb-6 border border-red-100">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-500 mb-2 block">Email</label>
@@ -126,9 +165,10 @@ export default function Login() {
 
             <button
               type="submit"
-              className="w-full bg-brand-500 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-brand-600 transition-all shadow-lg shadow-brand-500/20 active:scale-95"
+              disabled={loading}
+              className="w-full bg-brand-500 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-brand-600 transition-all shadow-lg shadow-brand-500/20 active:scale-95 disabled:opacity-70"
             >
-              <LogIn className="w-4 h-4" /> Sign In
+              <LogIn className="w-4 h-4" /> {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
 
