@@ -1,4 +1,4 @@
-import { ordersRef, productsRef, countersRef } from '../../config/firebase.js';
+import { db, ordersRef, productsRef, countersRef } from '../../config/firebase.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { logger } from '../../utils/logger.js';
 import { firestore } from '../../utils/firestore.js';
@@ -27,24 +27,27 @@ const generateOrderNumber = async () => {
 
 export const ordersService = {
   create: async (userId, data) => {
-    const { customer, items, paymentMethod } = data;
-    
-    // 1. Fetch all products to verify prices and stock
-    const productIds = items.map(item => item.productId);
-    
-    // Max 30 products due to 'in' query limit, which is fine for a normal cart
-    if (productIds.length > 30) {
+    const { customer, paymentMethod } = data;
+
+    // 1. Merge duplicate cart lines, then fetch the products to verify prices and stock
+    const quantities = new Map();
+    for (const { productId, quantity } of data.items) {
+      quantities.set(productId, (quantities.get(productId) || 0) + quantity);
+    }
+    const items = [...quantities].map(([productId, quantity]) => ({ productId, quantity }));
+
+    if (items.length > 50) {
       throw ApiError.badRequest('Too many items in order');
     }
 
-    const productsSnapshot = await productsRef.where('__name__', 'in', productIds).get();
-    
-    if (productsSnapshot.docs.length !== productIds.length) {
+    const productDocs = await db.getAll(...items.map(item => productsRef.doc(item.productId)));
+
+    if (productDocs.some(doc => !doc.exists)) {
       throw ApiError.badRequest('One or more products in the cart are invalid');
     }
 
     const productMap = {};
-    productsSnapshot.docs.forEach(doc => {
+    productDocs.forEach(doc => {
       productMap[doc.id] = { id: doc.id, ...doc.data() };
     });
 
@@ -56,7 +59,7 @@ export const ordersService = {
     for (const item of items) {
       const product = productMap[item.productId];
       
-      if (!product.inStock) {
+      if (product.inStock === false) {
         throw ApiError.badRequest(`Product ${product.name} is out of stock`);
       }
 
@@ -112,8 +115,10 @@ export const ordersService = {
   },
 
   findMine: async (userId) => {
-    const snapshot = await ordersRef.where('userId', '==', userId).orderBy('createdAt', 'desc').get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const snapshot = await ordersRef.where('userId', '==', userId).get();
+    return snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
   },
 
   findById: async (id, userId, role) => {
@@ -136,6 +141,7 @@ export const ordersService = {
   },
 
   updateStatus: async (id, { status, paymentStatus }) => {
+    if (status === 'paid' && !paymentStatus) paymentStatus = 'paid';
     const docRef = ordersRef.doc(id);
     const doc = await docRef.get();
     

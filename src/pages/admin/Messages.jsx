@@ -1,34 +1,35 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Check, Trash2, Mail } from 'lucide-react'
 import PageHeader from '../../components/admin/PageHeader'
-import { api } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
+import { useLiveRefresh } from '../../context/RealtimeContext'
 
 export default function Messages() {
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await api.get('/contact')
-        // Sort newest first
-        const sorted = (res.data || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        setMessages(sorted)
-      } catch (err) {
-        console.error('Failed to load messages', err)
-      } finally {
-        setLoading(false)
-      }
+  const load = useCallback(async () => {
+    try {
+      const res = await api.get('/contact')
+      const sorted = (res.data || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      setMessages(sorted)
+    } catch (err) {
+      console.error('Failed to load messages', err)
+    } finally {
+      setLoading(false)
     }
-    load()
   }, [])
+
+  useEffect(() => { load() }, [load])
+
+  useLiveRefresh(["contactMessages"], load)
 
   const handleMarkDone = async (id) => {
     try {
       await api.patch(`/contact/${id}`, { read: true })
       setMessages(prev => prev.map(m => m.id === id ? { ...m, read: true } : m))
     } catch (err) {
-      alert('Failed to mark message as read')
+      alert(errorMessage(err))
     }
   }
 
@@ -38,7 +39,7 @@ export default function Messages() {
       await api.del(`/contact/${id}`)
       setMessages(prev => prev.filter(m => m.id !== id))
     } catch (err) {
-      alert('Failed to delete message')
+      alert(errorMessage(err))
     }
   }
 
@@ -67,6 +68,7 @@ export default function Messages() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h3 className="font-bold text-neutral-900 text-lg">{msg.name}</h3>
+                  {msg.subject && <p className="text-sm font-semibold text-neutral-700">{msg.subject}</p>}
                   <a href={`mailto:${msg.email}`} className="text-sm text-pink-600 hover:underline">{msg.email}</a>
                   <p className="text-[11px] text-neutral-400 mt-1">{new Date(msg.createdAt).toLocaleString()}</p>
                 </div>

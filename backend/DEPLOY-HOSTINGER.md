@@ -56,11 +56,11 @@ nvm use 20
 
 Run the seed script (if this is a fresh database):
 ```bash
-node scripts/seed.js
+npm run seed
 ```
 Create your admin user:
 ```bash
-node scripts/createAdmin.js your.email@example.com "YourSecurePassword" "Your Name"
+npm run create-admin -- your.email@example.com "YourSecurePassword" "Your Name"
 ```
 
 ## 5. Starting the Server with PM2
@@ -104,6 +104,10 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
+        # Realtime admin stream (Server-Sent Events)
+        proxy_buffering off;
+        proxy_read_timeout 3600s;
+        client_max_body_size 50m;
     }
 }
 ```
@@ -133,18 +137,21 @@ sudo ufw enable
 
 ---
 
-## Frontend SPA Routing (Apache / `.htaccess`)
-If your React frontend is hosted on standard shared hosting (Apache), ensure you have an `.htaccess` file in your `public_html` directory to rewrite all requests to `index.html`:
+## Frontend (Hostinger shared hosting)
 
-```apache
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /
-  RewriteRule ^index\.html$ - [L]
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule . /index.html [L]
-</IfModule>
+The React site is fully static and can be hosted on any Hostinger plan. From the **project root** (not `backend/`):
+
+1. Create `.env.production` from `.env.example` and set `VITE_API_BASE_URL=https://api.visionaryitservices.com/api/v1` plus the `VITE_FIREBASE_*` values.
+2. Run `npm run build`.
+3. Upload the **contents** of `dist/` (including the hidden `.htaccess`) to `public_html/`.
+
+The bundled `.htaccess` sends every route to `index.html` so React Router can handle it, forces HTTPS, and sets caching headers.
+
+In the API `.env`, set:
+```env
+NODE_ENV=production
+CORS_ORIGINS=https://visionaryitservices.com,https://www.visionaryitservices.com
+COOKIE_SAMESITE=lax   # site and api.* subdomain are the same site
 ```
 
 ## Troubleshooting
@@ -154,4 +161,5 @@ If your React frontend is hosted on standard shared hosting (Apache), ensure you
 | `502 Bad Gateway` | Node server is down. Check PM2 logs: `pm2 logs visionary-api` |
 | Rate limit triggers instantly | Nginx isn't passing IPs. Ensure `X-Forwarded-For` is set in Nginx and `app.set('trust proxy', 1)` is in `app.js`. |
 | CORS errors | Add the frontend domain to `CORS_ORIGINS` in `.env`. |
-| Cannot log in (cookie issues) | Ensure `API_PREFIX` and frontend proxy paths align, or that `sameSite: 'none'` and `secure: true` are working over HTTPS. |
+| Cannot log in (cookie issues) | The site must use HTTPS and its origin must be in `CORS_ORIGINS`. Use `COOKIE_SAMESITE=lax` when the API is a subdomain of the site; use `none` only when they are on unrelated domains. |
+| `Recent sign-in required` | The server clock is wrong or the login took over 5 minutes. Sync the clock (`timedatectl set-ntp true`). |

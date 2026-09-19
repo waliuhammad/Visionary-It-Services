@@ -1,65 +1,71 @@
 import { authService } from './auth.service.js';
 import { response } from '../../utils/response.js';
-import { env } from '../../config/env.js';
 import { sendEmail } from '../../utils/mailer.js';
-
-const COOKIE_OPTIONS = {
-  maxAge: 60 * 60 * 24 * 5 * 1000, // 5 days
-  httpOnly: true,
-  secure: env.NODE_ENV === 'production',
-  sameSite: 'none', // Needed for cross-origin requests if API and frontend are on different origins
-};
+import { SESSION_COOKIE_NAME, sessionCookieOptions, clearCookieOptions } from '../../config/cookies.js';
+import { recordActivity } from '../activity/activity.service.js';
 
 export const authController = {
   register: async (req, res) => {
     const data = await authService.register(req.body);
+    recordActivity(req, {
+      action: 'user.registered', entity: 'user', entityId: data.uid,
+      summary: `${data.fullName} (${data.email}) created an account`,
+      actor: { uid: data.uid, name: data.fullName, email: data.email, role: 'customer' },
+    });
     return response.created(res, data);
   },
 
   session: async (req, res) => {
-    const { idToken } = req.body;
-    const { sessionCookie } = await authService.createSession(idToken);
-    
-    res.cookie('__session', sessionCookie, COOKIE_OPTIONS);
-    return response.ok(res, { message: 'Session created' });
+    const { sessionCookie, uid, role, email, name } = await authService.createSession(req.body.idToken);
+    recordActivity(req, {
+      action: 'auth.login', entity: 'user', entityId: uid,
+      summary: `${name || email} signed in`,
+      actor: { uid, name: name || email, email, role },
+    });
+    res.cookie(SESSION_COOKIE_NAME, sessionCookie, sessionCookieOptions);
+    return response.ok(res, { uid, role });
   },
 
   logout: async (req, res) => {
-    // If the user was authenticated, revoke their tokens
     if (req.user?.uid) {
       await authService.revokeTokens(req.user.uid);
+      recordActivity(req, { action: 'auth.logout', entity: 'user', entityId: req.user.uid, summary: `${req.user.name || req.user.email} signed out` });
     }
-    
-    // Clear the cookie
-    res.clearCookie('__session', COOKIE_OPTIONS);
+    res.clearCookie(SESSION_COOKIE_NAME, clearCookieOptions);
     return response.ok(res, { message: 'Logged out' });
   },
 
   getMe: async (req, res) => {
-    const data = await authService.getMe(req.user.uid);
+    const data = await authService.getMe(req.user);
     return response.ok(res, data);
   },
 
   passwordReset: async (req, res) => {
     const { email } = req.body;
     const link = await authService.generatePasswordReset(email);
-    
+
     if (link) {
-      // In a real app, send the email here
+      recordActivity(req, {
+        action: 'auth.password_reset_requested', entity: 'user', summary: `Password reset requested for ${email}`,
+        actor: { uid: null, name: email, email, role: 'guest' },
+      });
       await sendEmail({
         to: email,
-        subject: 'Password Reset',
-        html: `<p>Click <a href="${link}">here</a> to reset your password.</p>`
+        subject: 'Reset your Visionary IT Services password',
+        html: `<p>We received a request to reset your password.</p>
+               <p><a href="${link}">Click here to choose a new password</a>.</p>
+               <p>If you did not request this, you can safely ignore this email.</p>`,
       });
     }
-    
-    // Always return success to prevent email enumeration
+
+    // Always the same response to prevent email enumeration
     return response.ok(res, { message: 'If that email exists, a reset link has been sent.' });
   },
 
   setRole: async (req, res) => {
     const { uid, role } = req.body;
-    const data = await authService.setRole(uid, role);
+    const data = await authService.setRole(uid, role, req.user.uid);
+    recordActivity(req, { action: 'user.role_changed', entity: 'user', entityId: uid, summary: `Changed role of ${data.email || uid} to ${role}` });
     return response.ok(res, data);
-  }
+  },
 };

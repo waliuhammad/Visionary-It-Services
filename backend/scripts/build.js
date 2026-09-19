@@ -40,6 +40,7 @@ const run = async () => {
     console.log('Copying source files...');
     await copyRecursive(path.join(rootDir, 'src'), path.join(distDir, 'src'));
     await copyRecursive(path.join(rootDir, 'scripts'), path.join(distDir, 'scripts'));
+    await fs.rm(path.join(distDir, 'scripts', 'build.js'), { force: true });
     await copyRecursive(path.join(rootDir, 'data'), path.join(distDir, 'data'));
 
     // 3. Copy files
@@ -47,7 +48,9 @@ const run = async () => {
     await fs.copyFile(path.join(rootDir, '.env.example'), path.join(distDir, '.env.example'));
     await fs.copyFile(path.join(rootDir, 'ecosystem.config.cjs'), path.join(distDir, 'ecosystem.config.cjs'));
     await fs.copyFile(path.join(rootDir, 'README.md'), path.join(distDir, 'README.md'));
-    await fs.copyFile(path.join(rootDir, 'DEPLOY-HOSTINGER.md'), path.join(distDir, 'DEPLOY-HOSTINGER.md'));
+    for (const file of ['DEPLOY-HOSTINGER.md', 'package-lock.json', 'firebase.json', 'firestore.rules', 'firestore.indexes.json']) {
+      await fs.copyFile(path.join(rootDir, file), path.join(distDir, file));
+    }
 
     // 4. Transform package.json
     console.log('Generating production package.json...');
@@ -57,7 +60,10 @@ const run = async () => {
     // Remove dev tools and scripts for production
     delete pkg.devDependencies;
     pkg.scripts = {
-      start: 'node src/server.js'
+      start: 'node src/server.js',
+      seed: pkg.scripts.seed,
+      'create-admin': pkg.scripts['create-admin'],
+      'images:migrate': pkg.scripts['images:migrate'],
     };
 
     await fs.writeFile(path.join(distDir, 'package.json'), JSON.stringify(pkg, null, 2));

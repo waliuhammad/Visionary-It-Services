@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Monitor, Eye, EyeOff, LogIn, Mail, Lock, ShieldCheck, Zap, Globe } from 'lucide-react'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../lib/firebase'
@@ -10,36 +10,51 @@ export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
+  const [notice, setNotice] = useState(null)
   const location = useLocation()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
+    setNotice(null)
     setLoading(true)
 
     try {
-      // 1. Sign in with Firebase Client Auth
-      const userCredential = await signInWithEmailAndPassword(auth, form.email, form.password)
-      const user = userCredential.user
-      
-      // 2. Get ID Token
-      const idToken = await user.getIdToken()
-      
-      // 3. Send ID Token to our backend to create a session cookie
-      await api.post('/auth/session', { idToken })
-      
-      // 4. Redirect. If coming from a protected route (like /admin), go back there.
-      // Otherwise go to admin by default if they are admin, but we don't know role yet.
-      // Easiest is just send to /admin, and if they aren't admin, it will redirect them out.
-      const from = location.state?.from?.pathname || '/admin'
-      window.location.href = from // use window.location to force full reload and cookie pickup
-      
+      // 1. Sign in with the Firebase Web SDK
+      const { user } = await signInWithEmailAndPassword(auth, form.email, form.password)
+
+      // 2. Exchange the fresh ID token for an httpOnly session cookie
+      const { data } = await api.post('/auth/session', { idToken: await user.getIdToken() })
+
+      // 3. Admins go to the dashboard, everyone else back to where they came from.
+      // A full page load makes sure the new cookie is used by every request.
+      const from = location.state?.from?.pathname
+      window.location.href = from || (data?.role === 'admin' ? '/admin' : '/')
     } catch (err) {
-      console.error(err)
-      setError('Invalid email or password.')
+      const code = err?.code || ''
+      setError(
+        code.startsWith('auth/')
+          ? 'Invalid email or password.'
+          : err.message || 'Could not sign in. Please try again.'
+      )
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault()
+    setError(null)
+    setNotice(null)
+    if (!form.email) {
+      setError('Enter your email address first, then click "Forgot password?".')
+      return
+    }
+    try {
+      await api.post('/auth/password-reset', { email: form.email })
+      setNotice('If an account exists for that email, a reset link has been sent.')
+    } catch (err) {
+      setError(err.message)
     }
   }
 
@@ -117,6 +132,11 @@ export default function Login() {
               {error}
             </div>
           )}
+          {notice && (
+            <div className="bg-green-50 text-green-700 p-4 rounded-xl text-sm font-medium mb-6 border border-green-100">
+              {notice}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
@@ -160,7 +180,7 @@ export default function Login() {
                 <input type="checkbox" className="w-4 h-4 rounded border-neutral-300 text-brand-500 focus:ring-brand-500" />
                 <span className="text-sm text-neutral-600">Remember me</span>
               </label>
-              <a href="#" className="text-sm text-brand-500 font-medium hover:underline">Forgot password?</a>
+              <button type="button" onClick={handleForgotPassword} className="text-sm text-brand-500 font-medium hover:underline">Forgot password?</button>
             </div>
 
             <button

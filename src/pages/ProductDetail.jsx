@@ -1,41 +1,81 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { 
-  ChevronLeft, CheckCircle2, ShoppingCart, PlayCircle, 
-  ShieldCheck, Zap, ArrowRight, Monitor, Star 
+import {
+  ChevronLeft, CheckCircle2, ShoppingCart, ShieldCheck, Zap, ArrowRight, MessageSquare, SearchX,
 } from 'lucide-react'
 
 import Reveal from '../components/Reveal'
-import { EASE, fadeUp, fadeLeft, fadeRight, stagger } from '../lib/motion'
-
-import allProductsData from '../data/products.json'
+import ProductImage from '../components/ProductImage'
+import { fadeUp, fadeLeft, fadeRight, stagger } from '../lib/motion'
 import { useCart } from '../context/CartContext'
+import { useProducts, useProduct } from '../context/ProductsContext'
 
-const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-purple-500', 'bg-orange-500', 'bg-cyan-500', 'bg-rose-500', 'bg-violet-500', 'bg-green-500']
-
-const allProducts = allProductsData.map((p, index) => ({
-  ...p,
-  tag: p.badge || 'New',
-  desc: p.description || '',
-  color: colors[index % colors.length]
-}))
+const TABS = [
+  { key: 'description', label: 'Description' },
+  { key: 'details', label: 'Details' },
+]
 
 export default function ProductDetail() {
   const { id } = useParams()
   const { addToCart } = useCart()
+  const { products } = useProducts()
+  const { product, loading } = useProduct(id)
   const [activeTab, setActiveTab] = useState('description')
+  const [added, setAdded] = useState(false)
 
-  // Find product or default to the first one for demonstration
-  const product = allProducts.find(p => p.id === id) || allProducts[0]
+  if (loading) {
+    return (
+      <div className="pt-24 pb-20 min-h-screen bg-white">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div className="h-[500px] rounded-[2.5rem] bg-neutral-100 animate-pulse" />
+          <div className="space-y-4 pt-12">
+            <div className="h-6 w-32 bg-neutral-100 rounded animate-pulse" />
+            <div className="h-12 w-3/4 bg-neutral-100 rounded animate-pulse" />
+            <div className="h-8 w-40 bg-neutral-100 rounded animate-pulse" />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
-  // Get some recommendations
-  const relatedProducts = allProducts.filter(p => p.id !== product.id).slice(0, 4)
+  if (!product) {
+    return (
+      <div className="pt-32 pb-20 min-h-[70vh] flex items-start justify-center px-6">
+        <div className="text-center max-w-md">
+          <SearchX className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
+          <h1 className="text-2xl font-display font-bold text-neutral-900 mb-2">Product not found</h1>
+          <p className="text-neutral-500 mb-8">This product may have been removed or the link is incorrect.</p>
+          <Link to="/shop" className="inline-flex items-center gap-2 bg-[#1877F2] text-white px-6 py-3 rounded-xl font-bold">
+            Browse the marketplace <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  const inStock = product.inStock !== false
+  const relatedProducts = [
+    ...products.filter((p) => p.id !== product.id && p.category === product.category),
+    ...products.filter((p) => p.id !== product.id && p.category !== product.category),
+  ].slice(0, 4)
+
+  const handleAdd = () => {
+    addToCart(product)
+    setAdded(true)
+    setTimeout(() => setAdded(false), 2000)
+  }
+
+  const highlights = (product.tags?.length ? product.tags : [
+    `${product.category || 'Digital'} solution`,
+    product.deliveryType === 'digital' || !product.deliveryType ? 'Digital delivery' : product.deliveryType,
+    'Support from the Visionary IT team',
+  ]).slice(0, 5)
 
   return (
     <div className="pt-24 pb-20 min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-6">
-        
+
         {/* Back Link */}
         <Link to="/shop" className="inline-flex items-center gap-2 text-sm font-bold text-neutral-500 hover:text-neutral-900 transition-colors mb-8">
           <ChevronLeft className="w-4 h-4" />
@@ -43,241 +83,186 @@ export default function ProductDetail() {
         </Link>
 
         {/* Top Section */}
-        <motion.div 
+        <motion.div
+          key={product.id}
           initial="hidden"
           animate="visible"
           variants={stagger(0.1, 0.2)}
           className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20"
         >
-          
           {/* Image */}
-          <motion.div variants={fadeLeft} className="bg-[#eaf4e2] rounded-[2.5rem] p-12 flex items-center justify-center relative overflow-hidden h-[500px]">
-            {product.image ? (
-              <img src={product.image} alt={product.name} className="w-full h-full object-contain hover:scale-105 transition-transform duration-700" />
-            ) : (
-              <div className={`w-full h-full ${product.color} rounded-2xl flex items-center justify-center shadow-2xl hover:scale-105 transition-transform duration-700`}>
-                <Monitor className="w-24 h-24 text-white" />
-              </div>
-            )}
+          <motion.div variants={fadeLeft} className="bg-[#eaf4e2] rounded-[2.5rem] relative overflow-hidden h-[340px] sm:h-[500px]">
+            <ProductImage product={product} fit="object-contain" className="w-full h-full object-cover p-6 sm:p-12 hover:scale-105 transition-transform duration-700" iconClassName="w-24 h-24" />
           </motion.div>
 
           {/* Details */}
           <motion.div variants={fadeRight} className="flex flex-col justify-center">
-            <div className="mb-6">
+            <div className="mb-6 flex flex-wrap gap-2">
               <span className="inline-block px-4 py-1.5 bg-[#eef8ff] text-[#0095ff] text-xs font-bold uppercase rounded-md tracking-wider">
-                {product.category || 'MOBILE APP'}
+                {product.category}
               </span>
+              {product.tag && (
+                <span className="inline-block px-4 py-1.5 bg-[#2f88ff] text-white text-xs font-bold uppercase rounded-md tracking-wider">
+                  {product.tag}
+                </span>
+              )}
             </div>
-            
+
             <h1 className="text-4xl md:text-5xl font-display font-bold text-neutral-900 mb-4">
               {product.name}
             </h1>
-            
+
             <div className="flex items-center gap-4 mb-8">
               <span className="text-3xl font-extrabold text-neutral-900">
-                Rs. {product.price.toLocaleString()}
+                {product.priceLabel || `Rs. ${product.price.toLocaleString()}`}
               </span>
-              <span className="text-lg text-neutral-400 line-through font-bold">
-                Rs. {Math.round(product.price * 1.25).toLocaleString()}
-              </span>
-              <span className="px-3 py-1 bg-[#eef8ff] text-[#0095ff] text-sm font-bold rounded-full">
-                Save 20%
+              <span className={`px-3 py-1 text-sm font-bold rounded-full ${inStock ? 'bg-emerald-50 text-emerald-600' : 'bg-neutral-100 text-neutral-500'}`}>
+                {inStock ? 'Available' : 'Currently unavailable'}
               </span>
             </div>
 
             <p className="text-neutral-500 text-lg leading-relaxed mb-8">
-              {product.desc || 'Weekly meal planning, grocery lists, and recipe suggestions based on diet.'}
+              {product.shortDescription || product.description}
             </p>
 
             <ul className="space-y-4 mb-10">
-              <li className="flex items-center gap-3 text-neutral-700 font-bold">
-                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                Dietary filters
-              </li>
-              <li className="flex items-center gap-3 text-neutral-700 font-bold">
-                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                Nutrition info
-              </li>
-              <li className="flex items-center gap-3 text-neutral-700 font-bold">
-                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                Shopping list generator
-              </li>
+              {highlights.map((h) => (
+                <li key={h} className="flex items-center gap-3 text-neutral-700 font-bold">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                  {h}
+                </li>
+              ))}
             </ul>
 
             <div className="flex flex-col sm:flex-row gap-4 mb-12">
-              <button 
-                onClick={() => addToCart(product)}
-                className="flex-1 bg-[#1877F2] text-white px-8 py-4 rounded-xl font-bold hover:bg-[#1564d0] transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+              <button
+                onClick={handleAdd}
+                disabled={!inStock}
+                className="flex-1 bg-[#1877F2] text-white px-8 py-4 rounded-xl font-bold hover:bg-[#1564d0] transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ShoppingCart className="w-5 h-5" />
-                Add to Cart
+                {added ? 'Added to cart ✓' : inStock ? 'Add to Cart' : 'Unavailable'}
               </button>
-              <button className="flex-1 bg-white border border-neutral-200 text-neutral-900 px-8 py-4 rounded-xl font-bold hover:border-neutral-300 transition-colors flex items-center justify-center gap-2">
-                Instant Demo
-              </button>
+              <Link
+                to="/contact"
+                state={{ subject: 'General Support', message: `Hi, I have a question about "${product.name}".` }}
+                className="flex-1 bg-white border border-neutral-200 text-neutral-900 px-8 py-4 rounded-xl font-bold hover:border-neutral-300 transition-colors flex items-center justify-center gap-2"
+              >
+                <MessageSquare className="w-5 h-5" />
+                Ask a Question
+              </Link>
             </div>
 
             <div className="flex items-center gap-8 pt-8 border-t border-neutral-100">
               <div className="flex items-center gap-3">
                 <ShieldCheck className="w-6 h-6 text-[#1877F2]" />
                 <div>
-                  <p className="font-bold text-neutral-900 text-sm">Authenticity Guard</p>
-                  <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">100% Original</p>
+                  <p className="font-bold text-neutral-900 text-sm">Secure Checkout</p>
+                  <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Prices verified</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <Zap className="w-6 h-6 text-[#1877F2]" />
                 <div>
                   <p className="font-bold text-neutral-900 text-sm">Fast Delivery</p>
-                  <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Instant Access</p>
+                  <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Digital access</p>
                 </div>
               </div>
             </div>
-
           </motion.div>
         </motion.div>
 
         {/* Tabs Section */}
         <Reveal className="mb-20">
           <div className="flex items-center gap-8 border-b border-neutral-100 mb-8">
-            <button 
-              onClick={() => setActiveTab('description')}
-              className={`flex items-center gap-2 pb-4 font-bold text-sm transition-all relative ${
-                activeTab === 'description' ? 'text-[#1877F2]' : 'text-neutral-500 hover:text-neutral-900'
-              }`}
-            >
-              Description
-              {activeTab === 'description' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1877F2] rounded-t-full" />
-              )}
-            </button>
-            <button 
-              onClick={() => setActiveTab('specs')}
-              className={`flex items-center gap-2 pb-4 font-bold text-sm transition-all relative ${
-                activeTab === 'specs' ? 'text-[#1877F2]' : 'text-neutral-500 hover:text-neutral-900'
-              }`}
-            >
-              Tech Specs
-              {activeTab === 'specs' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1877F2] rounded-t-full" />
-              )}
-            </button>
-            <button 
-              onClick={() => setActiveTab('reviews')}
-              className={`flex items-center gap-2 pb-4 font-bold text-sm transition-all relative ${
-                activeTab === 'reviews' ? 'text-[#1877F2]' : 'text-neutral-500 hover:text-neutral-900'
-              }`}
-            >
-              Reviews
-              {activeTab === 'reviews' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1877F2] rounded-t-full" />
-              )}
-            </button>
+            {TABS.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-2 pb-4 font-bold text-sm transition-all relative ${
+                  activeTab === tab.key ? 'text-[#1877F2]' : 'text-neutral-500 hover:text-neutral-900'
+                }`}
+              >
+                {tab.label}
+                {activeTab === tab.key && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1877F2] rounded-t-full" />
+                )}
+              </button>
+            ))}
           </div>
 
           <div className="max-w-3xl">
             {activeTab === 'description' && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <h3 className="text-2xl font-bold text-neutral-900">Experience Tomorrow's Software Today</h3>
-                <p className="text-neutral-600 leading-relaxed">
-                  {product.desc} Our {product.category || 'Mobile App'} solution is meticulously engineered to provide the highest level of performance, reliability, and security for your business environment.
-                </p>
-                <p className="text-neutral-600 leading-relaxed">
-                  Built with scalability in mind, it integrates seamlessly with existing enterprise systems and modern cloud architectures. Whether you're a startup or a global corporation, Visionary IT provides the foundation for your next digital breakthrough.
-                </p>
-              </div>
-            )}
-            
-            {activeTab === 'specs' && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <h3 className="text-2xl font-bold text-neutral-900">Technical Specifications</h3>
-                <ul className="space-y-3">
-                  <li className="flex text-neutral-600"><strong className="w-40 text-neutral-900">Platform:</strong> iOS & Android</li>
-                  <li className="flex text-neutral-600"><strong className="w-40 text-neutral-900">Tech Stack:</strong> React Native, Node.js</li>
-                  <li className="flex text-neutral-600"><strong className="w-40 text-neutral-900">Version:</strong> 2.4.1</li>
-                  <li className="flex text-neutral-600"><strong className="w-40 text-neutral-900">Last Updated:</strong> Oct 2026</li>
-                </ul>
+              <div className="space-y-6">
+                <h3 className="text-2xl font-bold text-neutral-900">About this {product.category?.toLowerCase() || 'product'}</h3>
+                <p className="text-neutral-600 leading-relaxed whitespace-pre-line">{product.description}</p>
               </div>
             )}
 
-            {activeTab === 'reviews' && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="flex text-[#FFB800]">
-                    <Star className="w-5 h-5 fill-current" />
-                    <Star className="w-5 h-5 fill-current" />
-                    <Star className="w-5 h-5 fill-current" />
-                    <Star className="w-5 h-5 fill-current" />
-                    <Star className="w-5 h-5 fill-current" />
-                  </div>
-                  <span className="font-bold text-neutral-900">5.0 (24 reviews)</span>
-                </div>
-                <div className="space-y-8">
-                  <div className="border-b border-neutral-100 pb-8">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-bold text-neutral-900">Incredible solution for our team</h4>
-                      <span className="text-sm text-neutral-400">2 days ago</span>
-                    </div>
-                    <p className="text-neutral-600">This software completely transformed how we handle our daily operations. The interface is intuitive and the customer support is top-notch.</p>
-                  </div>
-                </div>
+            {activeTab === 'details' && (
+              <div className="space-y-6">
+                <h3 className="text-2xl font-bold text-neutral-900">Details</h3>
+                <ul className="space-y-3">
+                  <li className="flex text-neutral-600"><strong className="w-40 text-neutral-900">Category:</strong> {product.category}</li>
+                  <li className="flex text-neutral-600"><strong className="w-40 text-neutral-900">Price:</strong> Rs. {product.price.toLocaleString()}</li>
+                  <li className="flex text-neutral-600"><strong className="w-40 text-neutral-900">Delivery:</strong> <span className="capitalize">{product.deliveryType || 'digital'}</span></li>
+                  <li className="flex text-neutral-600"><strong className="w-40 text-neutral-900">Availability:</strong> {inStock ? 'Available' : 'Currently unavailable'}</li>
+                  {product.updatedAt && (
+                    <li className="flex text-neutral-600"><strong className="w-40 text-neutral-900">Last updated:</strong> {new Date(product.updatedAt).toLocaleDateString()}</li>
+                  )}
+                </ul>
               </div>
             )}
           </div>
         </Reveal>
 
         {/* You May Also Like */}
-        <div className="border-t border-neutral-100 pt-20">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-3xl font-display font-bold text-neutral-900">You May Also Like</h2>
-            <Link to="/shop" className="text-[#1877F2] font-bold flex items-center gap-1 hover:gap-2 transition-all">
-              Browse More <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-          
-          <motion.div 
-            variants={stagger(0, 0.1)}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.25 }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-          >
-            {relatedProducts.map(rel => (
-              <motion.div variants={fadeUp} key={rel.id}>
-                <Link to={`/product/${rel.id}`} className="bg-white border border-neutral-100 hover:border-neutral-200 rounded-[2.5rem] overflow-hidden group transition-all shadow-sm hover:shadow-md flex flex-col product-card-hover block h-full">
-                <div className="relative h-48 bg-neutral-100 flex items-center justify-center overflow-hidden shrink-0">
-                  {rel.image ? (
-                    <img src={rel.image} alt={rel.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                  ) : (
-                    <div className={`w-full h-full flex items-center justify-center ${rel.color} group-hover:scale-110 transition-transform`}>
-                      <Monitor className="w-10 h-10 text-white" />
-                    </div>
-                  )}
-                  <span className="absolute top-4 left-4 px-3 py-1 bg-[#2f88ff] text-white text-[10px] font-bold uppercase rounded-xl shadow-sm z-10">
-                    {rel.tag || 'Best Seller'}
-                  </span>
-                </div>
-                <div className="p-6 flex flex-col flex-1">
-                  <span className="inline-block px-3 py-1 bg-[#eef8ff] text-[#0095ff] text-[10px] font-bold uppercase rounded-md tracking-wider self-start mb-3">
-                    {rel.category || 'MOBILE APP'}
-                  </span>
-                  <h3 className="font-bold text-lg text-neutral-900 mb-2 line-clamp-1">{rel.name}</h3>
-                  <p className="text-neutral-500 text-sm leading-relaxed mb-4 h-10 overflow-hidden text-ellipsis">
-                    {rel.desc}
-                  </p>
-                  <div className="flex items-center justify-between mt-auto">
-                    <span className="text-neutral-900 font-extrabold text-xl tracking-tight">Rs. {rel.price.toLocaleString()}</span>
-                    <div className="w-10 h-10 bg-[#111111] text-white rounded-xl flex items-center justify-center group-hover:bg-black transition-colors">
-                      <ArrowRight className="w-5 h-5" />
-                    </div>
-                  </div>
-                </div>
-                </Link>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
+        {relatedProducts.length > 0 && (
+          <div className="border-t border-neutral-100 pt-20">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-3xl font-display font-bold text-neutral-900">You May Also Like</h2>
+              <Link to="/shop" className="text-[#1877F2] font-bold flex items-center gap-1 hover:gap-2 transition-all">
+                Browse More <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
 
+            <motion.div
+              variants={stagger(0, 0.1)}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.25 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+            >
+              {relatedProducts.map((rel) => (
+                <motion.div variants={fadeUp} key={rel.id}>
+                  <Link to={`/product/${rel.id}`} className="bg-white border border-neutral-100 hover:border-neutral-200 rounded-[2.5rem] overflow-hidden group transition-all shadow-sm hover:shadow-md flex flex-col product-card-hover h-full">
+                    <div className="relative h-48 bg-neutral-100 flex items-center justify-center overflow-hidden shrink-0">
+                      <ProductImage product={rel} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" iconClassName="w-10 h-10" />
+                      <span className="absolute top-4 left-4 px-3 py-1 bg-[#2f88ff] text-white text-[10px] font-bold uppercase rounded-xl shadow-sm z-10">
+                        {rel.tag}
+                      </span>
+                    </div>
+                    <div className="p-6 flex flex-col flex-1">
+                      <span className="inline-block px-3 py-1 bg-[#eef8ff] text-[#0095ff] text-[10px] font-bold uppercase rounded-md tracking-wider self-start mb-3">
+                        {rel.category}
+                      </span>
+                      <h3 className="font-bold text-lg text-neutral-900 mb-2 line-clamp-1">{rel.name}</h3>
+                      <p className="text-neutral-500 text-sm leading-relaxed mb-4 h-10 overflow-hidden text-ellipsis">
+                        {rel.desc}
+                      </p>
+                      <div className="flex items-center justify-between mt-auto">
+                        <span className="text-neutral-900 font-extrabold text-xl tracking-tight">Rs. {rel.price.toLocaleString()}</span>
+                        <div className="w-10 h-10 bg-[#111111] text-white rounded-xl flex items-center justify-center group-hover:bg-black transition-colors">
+                          <ArrowRight className="w-5 h-5" />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -1,9 +1,12 @@
 import { Link } from 'react-router-dom'
-import { ShoppingCart, ShoppingBag, ArrowRight, Package, Trash2, Plus, Minus } from 'lucide-react'
+import { ShoppingBag, ArrowRight, Trash2, Plus, Minus, AlertTriangle } from 'lucide-react'
 import { useCart } from '../context/CartContext'
+import { useLiveCart } from '../hooks/useLiveCart'
+import ProductImage from '../components/ProductImage'
 
 export default function Cart() {
-  const { cart, removeFromCart, updateQuantity, getCartTotal, getCartCount } = useCart()
+  const { cart, removeFromCart, updateQuantity } = useCart()
+  const { items, hasUnavailable, count, total } = useLiveCart()
 
   if (cart.length === 0) {
     return (
@@ -40,71 +43,92 @@ export default function Cart() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-4">
-              {cart.map((item) => (
-                <div key={item.id} className="bg-white p-4 rounded-2xl border border-neutral-100 flex items-center gap-4">
-                  <div className="w-20 h-20 bg-neutral-100 rounded-xl overflow-hidden shrink-0">
-                    {item.image ? (
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+          <div className="lg:col-span-2 space-y-4">
+            {hasUnavailable && (
+              <div className="flex items-start gap-3 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+                <AlertTriangle className="w-5 h-5 shrink-0" />
+                Some items are no longer available. Remove them to continue to checkout.
+              </div>
+            )}
+
+            {items.map((item) => (
+              <div key={item.id} className={`bg-white p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center gap-4 ${item.unavailable ? 'border-amber-200 opacity-70' : 'border-neutral-100'}`}>
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <Link to={`/product/${item.id}`} className="w-20 h-20 bg-neutral-100 rounded-xl overflow-hidden shrink-0">
+                    <ProductImage product={item} iconClassName="w-6 h-6" />
+                  </Link>
+                  <div className="flex-1 min-w-0">
+                    <Link to={`/product/${item.id}`} className="font-bold text-neutral-900 line-clamp-1 hover:underline">{item.name}</Link>
+                    <p className="text-sm text-neutral-500 mb-1">{item.category}</p>
+                    {item.reason ? (
+                      <p className="text-sm font-bold text-amber-700">{item.reason}</p>
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-brand-100">
-                        <Package className="w-6 h-6 text-brand-500" />
-                      </div>
+                      <div className="font-bold text-brand-500 text-lg">Rs. {item.price.toLocaleString()}</div>
                     )}
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-neutral-900 line-clamp-1">{item.name}</h3>
-                    <p className="text-sm text-neutral-500 mb-2">{item.category}</p>
-                    <div className="font-bold text-brand-500 text-lg">Rs. {item.price.toLocaleString()}</div>
-                  </div>
-                  <div className="flex items-center gap-3">
+                </div>
+                <div className="flex items-center gap-3 self-end sm:self-auto">
+                  {!item.unavailable && (
                     <div className="flex items-center bg-neutral-50 rounded-lg p-1">
-                      <button 
+                      <button
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        aria-label="Decrease quantity"
                         className="p-1 hover:bg-white rounded text-neutral-500 hover:text-neutral-900 transition-colors"
                       >
                         <Minus className="w-4 h-4" />
                       </button>
                       <span className="w-8 text-center text-sm font-bold">{item.quantity}</span>
-                      <button 
+                      <button
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        aria-label="Increase quantity"
                         className="p-1 hover:bg-white rounded text-neutral-500 hover:text-neutral-900 transition-colors"
                       >
                         <Plus className="w-4 h-4" />
                       </button>
                     </div>
-                    <button 
-                      onClick={() => removeFromCart(item.id)}
-                      className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="bg-[#f8f9fa] p-6 rounded-3xl h-fit border-none">
-              <h3 className="font-bold text-xl text-neutral-900 mb-6">Order Summary</h3>
-              <div className="space-y-4 mb-6">
-                <div className="flex justify-between text-neutral-500">
-                  <span>Items ({getCartCount()})</span>
-                  <span>Rs. {getCartTotal().toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-start gap-4 text-neutral-500">
-                  <span>Taxes</span>
-                  <span className="text-right max-w-[150px] leading-tight">Calculated at checkout</span>
-                </div>
-                <div className="border-t border-neutral-100 pt-4 flex justify-between items-end">
-                  <span className="font-bold text-neutral-900">Total</span>
-                  <span className="text-2xl font-extrabold text-brand-500">Rs. {getCartTotal().toLocaleString()}</span>
+                  )}
+                  <button
+                    onClick={() => removeFromCart(item.id)}
+                    aria-label={`Remove ${item.name}`}
+                    className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
                 </div>
               </div>
-              <button className="w-full py-4 bg-neutral-900 text-white rounded-xl font-bold hover:bg-black transition-colors flex items-center justify-center gap-2">
-                Checkout <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
+            ))}
           </div>
+
+          <div className="bg-[#f8f9fa] p-6 rounded-3xl h-fit border-none">
+            <h3 className="font-bold text-xl text-neutral-900 mb-6">Order Summary</h3>
+            <div className="space-y-4 mb-6">
+              <div className="flex justify-between text-neutral-500">
+                <span>Items ({count})</span>
+                <span>Rs. {total.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-start gap-4 text-neutral-500">
+                <span>Taxes</span>
+                <span className="text-right max-w-[150px] leading-tight">Calculated at checkout</span>
+              </div>
+              <div className="border-t border-neutral-100 pt-4 flex justify-between items-end">
+                <span className="font-bold text-neutral-900">Total</span>
+                <span className="text-2xl font-extrabold text-brand-500">Rs. {total.toLocaleString()}</span>
+              </div>
+            </div>
+            {hasUnavailable ? (
+              <button disabled className="w-full py-4 bg-neutral-300 text-white rounded-xl font-bold cursor-not-allowed">
+                Remove unavailable items
+              </button>
+            ) : (
+              <Link
+                to="/checkout"
+                className="w-full py-4 bg-neutral-900 text-white rounded-xl font-bold hover:bg-black transition-colors flex items-center justify-center gap-2"
+              >
+                Checkout <ArrowRight className="w-4 h-4" />
+              </Link>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

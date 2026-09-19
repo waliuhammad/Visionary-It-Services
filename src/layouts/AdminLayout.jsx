@@ -1,11 +1,13 @@
 import { Outlet } from 'react-router-dom'
 import Sidebar from '../components/admin/Sidebar'
+import Toasts from '../components/admin/Toasts'
+import { RealtimeProvider } from '../context/RealtimeContext'
 import { useAdminAuth } from '../hooks/useAdminAuth'
 
 export default function AdminLayout() {
   const { user, loading } = useAdminAuth()
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center">
         <div className="text-center">
@@ -17,11 +19,14 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7]">
-      <Sidebar />
-      <main className="ml-[280px] p-8 pt-10 min-h-screen">
-        <Outlet context={{ user }} />
-      </main>
-    </div>
+    <RealtimeProvider userUid={user.uid}>
+      <div className="min-h-screen bg-[#f5f5f7]">
+        <Sidebar />
+        <main className="ml-[280px] p-8 pt-10 min-h-screen">
+          <Outlet context={{ user }} />
+        </main>
+        <Toasts />
+      </div>
+    </RealtimeProvider>
   )
 }

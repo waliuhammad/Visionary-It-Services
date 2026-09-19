@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  ArrowRight, Shield, Zap, Globe, Users, Monitor, Cloud,
+  ArrowRight, Shield, Zap, Globe, Users, Cloud,
   Code, Smartphone, Star, CheckCircle, ChevronRight, Mail,
   ShoppingCart, Eye
 } from 'lucide-react'
 import { useCart } from '../context/CartContext'
+import { useProducts } from '../context/ProductsContext'
+import ProductImage from '../components/ProductImage'
 import Reveal from '../components/Reveal'
 import CountUp from '../components/CountUp'
 import { EASE, fadeUp, fadeLeft, fadeRight, scaleIn, stagger } from '../lib/motion'
@@ -15,13 +17,6 @@ const categories = [
   { icon: Globe, label: 'Web Templates', desc: 'We provide premium-grade web templates tailored for high-growth businesses.', iconBg: 'bg-[#10b981]', hoverBg: 'hover:bg-[#061936]' },
   { icon: Zap, label: 'Mobile Apps', desc: 'We provide premium-grade mobile apps tailored for high-growth businesses.', iconBg: 'bg-[#f97316]', hoverBg: 'hover:bg-[#061936]' },
   { icon: Cloud, label: 'SaaS Tools', desc: 'We provide premium-grade saas tools tailored for high-growth businesses.', iconBg: 'bg-[#a855f7]', hoverBg: 'hover:bg-[#061936]' },
-]
-
-const trendingProducts = [
-  { id: 1, name: 'PhotoEditor X', category: 'Software', desc: 'Professional photo editing suite with layers, filters, and AI enhancements.', price: 2500, tag: 'Best Seller', image: '/assets/professional-copy-typing-services-for-business.png' },
-  { id: 2, name: 'FitTrack', category: 'Mobile App', desc: 'Mobile workout tracker with personalized plans, diet logs, and...', price: 1000, tag: 'Best Seller', image: '/assets/Shopify-Store-Mobile-Preview-Banner-768x723.webp' },
-  { id: 3, name: 'Antivirus Shield', category: 'Software', desc: 'Real-time malware protection, firewall, and secure VPN included.', price: 1500, tag: 'Best Seller', image: '/assets/shutterstock_ai_assistant-768x768-1.jpg' },
-  { id: 4, name: 'Focus Keeper', category: 'Productivity', desc: 'Pomodoro timer with distraction blocker and productivity analytics.', price: 1000, tag: 'Best Seller', image: '/assets/wordpress-landing-pages-screenshot-768x464.jpg' },
 ]
 
 const whyUs = [
@@ -39,6 +34,14 @@ const testimonials = [
 
 export default function Home() {
   const { addToCart } = useCart()
+  const { products } = useProducts()
+  // Best sellers with a real photo first, then any other best sellers
+  const bestSellers = products.filter((p) => p.bestSeller && p.inStock !== false)
+  const trendingProducts = [
+    ...bestSellers.filter((p) => /^https?:/.test(p.image || '')),
+    ...bestSellers.filter((p) => !/^https?:/.test(p.image || '')),
+    ...products,
+  ].filter((p, i, arr) => arr.findIndex((x) => x.id === p.id) === i).slice(0, 4)
 
   return (
     <div className="overflow-hidden">
@@ -231,18 +234,12 @@ export default function Home() {
           >
             {trendingProducts.map((product) => (
               <motion.div
-                key={product.name}
+                key={product.id}
                 variants={fadeUp}
                 className="bg-white rounded-[2rem] overflow-hidden group shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-neutral-100 flex flex-col product-card-hover"
               >
                 <div className="relative h-56 bg-neutral-100 overflow-hidden m-2 rounded-[1.5rem] img-zoom-container">
-                  {product.image ? (
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-neutral-200 flex items-center justify-center">
-                      <Monitor className="w-8 h-8 text-neutral-400" />
-                    </div>
-                  )}
+                  <ProductImage product={product} />
                   {/* Hover Overlay Actions */}
                   <div className="absolute inset-0 bg-brand-900/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4">
                     <Link 
@@ -269,7 +266,7 @@ export default function Home() {
                     </span>
                   </div>
                   <h3 className="font-bold text-xl text-neutral-900 mb-2">{product.name}</h3>
-                  <p className="text-neutral-500 text-sm leading-relaxed mb-6 flex-1">
+                  <p className="text-neutral-500 text-sm leading-relaxed mb-6 flex-1 line-clamp-3">
                     {product.desc}
                   </p>
                   <div className="flex items-center justify-between mt-auto">

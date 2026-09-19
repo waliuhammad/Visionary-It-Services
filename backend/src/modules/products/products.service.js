@@ -1,12 +1,18 @@
 import { productsRef } from '../../config/firebase.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { logger } from '../../utils/logger.js';
+import { destroyByUrls } from '../../utils/cloudinary.js';
+
+const imageUrls = (p = {}) => [p.image, ...(p.images || [])].filter(Boolean);
 
 /**
  * Tokenize string for poor-man's search
  */
 export const generateKeywords = (product) => {
-  const text = `${product.name} ${product.shortDescription} ${product.category} ${(product.tags || []).join(' ')}`.toLowerCase();
+  const text = [product.name, product.shortDescription || product.description, product.category, ...(product.tags || [])]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
   // Keep words >= 3 chars
   const words = text.match(/\b\w{3,}\b/g) || [];
   // Dedupe and cap at 60
@@ -15,61 +21,40 @@ export const generateKeywords = (product) => {
 
 export const productsService = {
   find: async (queryOpts) => {
-    let query = productsRef;
+    // The catalogue is small (a few hundred items), so filtering and sorting happen in memory.
+    // This keeps every filter/sort combination working without composite Firestore indexes.
+    let results = (await productsRef.get()).docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     if (queryOpts.category) {
-      query = query.where('category', '==', queryOpts.category);
+      const category = queryOpts.category.toLowerCase();
+      results = results.filter(p => p.category?.toLowerCase() === category);
     }
-    
     if (queryOpts.bestSeller !== undefined) {
-      query = query.where('bestSeller', '==', queryOpts.bestSeller);
+      results = results.filter(p => Boolean(p.bestSeller) === queryOpts.bestSeller);
     }
-
     if (queryOpts.search) {
-      // Lowercase search term, take first token as primary search due to array-contains limitation
-      const searchTokens = queryOpts.search.toLowerCase().match(/\b\w{3,}\b/g) || [];
-      if (searchTokens.length > 0) {
-        query = query.where('keywords', 'array-contains', searchTokens[0]);
-      }
+      const tokens = queryOpts.search.toLowerCase().match(/\b\w{2,}\b/g) || [];
+      results = results.filter(p => {
+        const haystack = `${p.name} ${p.description || ''} ${p.category || ''} ${(p.keywords || []).join(' ')}`.toLowerCase();
+        return tokens.every(t => haystack.includes(t));
+      });
     }
-
-    // Apply sorting
-    switch (queryOpts.sort) {
-      case 'price_asc':
-        query = query.orderBy('price', 'asc');
-        break;
-      case 'price_desc':
-        query = query.orderBy('price', 'desc');
-        break;
-      case 'name_asc':
-        query = query.orderBy('name', 'asc');
-        break;
-      case 'newest':
-        query = query.orderBy('createdAt', 'desc');
-        break;
-      case 'featured':
-        query = query.orderBy('bestSeller', 'desc').orderBy('createdAt', 'desc');
-        break;
-      default:
-        query = query.orderBy('createdAt', 'desc');
-    }
-
-    // Since we applied where filters and orderBys, composite indexes are required!
-    // Ex: category (ASC) + price (ASC), keywords (ARRAY) + price (ASC)
-
-    // Note: minPrice/maxPrice are best handled client-side or as post-fetch filters
-    // if other inequality filters (or array-contains) are used, due to Firestore limits.
-    // For simplicity, we filter them post-query if search or other orderings are used.
-
-    const snapshot = await query.get();
-    let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
     if (queryOpts.minPrice !== undefined) {
       results = results.filter(p => p.price >= queryOpts.minPrice);
     }
     if (queryOpts.maxPrice !== undefined) {
       results = results.filter(p => p.price <= queryOpts.maxPrice);
     }
+
+    const byNewest = (a, b) => (b.createdAt || '').localeCompare(a.createdAt || '');
+    const sorters = {
+      price_asc: (a, b) => a.price - b.price,
+      price_desc: (a, b) => b.price - a.price,
+      name_asc: (a, b) => a.name.localeCompare(b.name),
+      newest: byNewest,
+      featured: (a, b) => Number(Boolean(b.bestSeller)) - Number(Boolean(a.bestSeller)) || byNewest(a, b),
+    };
+    results.sort(sorters[queryOpts.sort] || byNewest);
 
     // In-memory pagination for simplified cursor logic given the post-filters
     const startIndex = (queryOpts.page - 1) * queryOpts.limit;
@@ -160,13 +145,19 @@ export const productsService = {
     const updateData = { ...data, updatedAt: new Date().toISOString() };
     
     // Recompute keywords if fields changed
-    if (data.name || data.shortDescription || data.category || data.tags) {
+    if (data.name || data.shortDescription || data.description || data.category || data.tags) {
       const current = doc.data();
       updateData.keywords = generateKeywords({ ...current, ...data });
     }
 
     await docRef.update(updateData);
     logger.info('Product updated', { id });
+
+    // Remove Cloudinary images this product no longer uses
+    if (data.image !== undefined || data.images !== undefined) {
+      const kept = new Set(imageUrls({ ...doc.data(), ...data }));
+      destroyByUrls(imageUrls(doc.data()).filter(url => !kept.has(url)));
+    }
     
     const updated = (await docRef.get()).data();
     delete updated.keywords;
@@ -180,5 +171,7 @@ export const productsService = {
 
     await docRef.delete();
     logger.info('Product deleted', { id });
+    destroyByUrls(imageUrls(doc.data()));
+    return { id, ...doc.data() };
   }
 };

@@ -1,31 +1,33 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { FolderPlus, Trash2 } from 'lucide-react'
 import PageHeader from '../../components/admin/PageHeader'
 import PillButton from '../../components/admin/PillButton'
-import { api } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
+import { useLiveRefresh } from '../../context/RealtimeContext'
 
 export default function Categories() {
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [catRes, prodRes] = await Promise.all([
-          api.get('/categories'),
-          api.get('/products?limit=999'),
-        ])
-        setCategories(catRes.data || [])
-        setProducts(prodRes.data || [])
-      } catch (err) {
-        console.error('Failed to load categories', err)
-      } finally {
-        setLoading(false)
-      }
+  const load = useCallback(async () => {
+    try {
+      const [catRes, prodRes] = await Promise.all([
+        api.get('/categories'),
+        api.get('/products?limit=1000'),
+      ])
+      setCategories(catRes.data || [])
+      setProducts(prodRes.data || [])
+    } catch (err) {
+      console.error('Failed to load categories', err)
+    } finally {
+      setLoading(false)
     }
-    load()
   }, [])
+
+  useEffect(() => { load() }, [load])
+
+  useLiveRefresh(["categories","products"], load)
 
   const getProductCount = (catName) => {
     return products.filter(p => p.category === catName).length
@@ -37,7 +39,7 @@ export default function Categories() {
       await api.del(`/categories/${id}`)
       setCategories(prev => prev.filter(c => c.id !== id))
     } catch (err) {
-      alert('Failed to delete category')
+      alert(errorMessage(err))
     }
   }
 
@@ -48,7 +50,7 @@ export default function Categories() {
       const res = await api.post('/categories', { name })
       setCategories(prev => [...prev, res.data])
     } catch (err) {
-      alert('Failed to create category')
+      alert(errorMessage(err))
     }
   }
 
@@ -85,7 +87,7 @@ export default function Categories() {
                 </div>
                 {c.description && <p className="text-sm text-neutral-500 mb-4">{c.description}</p>}
                 {c.imageUrl && <img src={c.imageUrl} alt={c.name} className="w-full h-32 object-cover rounded-xl mb-4" />}
-                
+
                 <div className="mt-auto pt-4 border-t border-neutral-100 flex items-center justify-between">
                   <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Products</span>
                   <span className="text-sm font-bold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">

@@ -1,6 +1,7 @@
 export class ApiError extends Error {
   constructor(statusCode, message, details = null) {
     super(message);
+    this.name = 'ApiError';
     this.statusCode = statusCode;
     this.details = details;
     Error.captureStackTrace(this, this.constructor);
@@ -24,6 +25,10 @@ export class ApiError extends Error {
 
   static conflict(message = 'Conflict') {
     return new ApiError(409, message);
+  }
+
+  static unprocessable(message = 'Validation failed', details = null) {
+    return new ApiError(422, message, details);
   }
 
   static tooMany(message = 'Too Many Requests') {

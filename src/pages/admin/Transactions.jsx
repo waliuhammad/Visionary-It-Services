@@ -1,40 +1,41 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Download, CreditCard, Banknote } from 'lucide-react'
 import PageHeader from '../../components/admin/PageHeader'
 import PillButton from '../../components/admin/PillButton'
 import { api } from '../../lib/api'
+import { useLiveRefresh } from '../../context/RealtimeContext'
 
 export default function Transactions() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await api.get('/orders')
-        // Filter out cancelled orders for transaction view usually
-        const validOrders = (res.data || []).filter(o => o.status !== 'cancelled')
-        // Sort newest first
-        setOrders(validOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)))
-      } catch (err) {
-        console.error('Failed to load transactions', err)
-      } finally {
-        setLoading(false)
-      }
+  const load = useCallback(async () => {
+    try {
+      const res = await api.get('/orders')
+      // Cancelled orders are not transactions
+      const validOrders = (res.data || []).filter(o => o.status !== 'cancelled')
+      setOrders(validOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)))
+    } catch (err) {
+      console.error('Failed to load transactions', err)
+    } finally {
+      setLoading(false)
     }
-    load()
   }, [])
+
+  useEffect(() => { load() }, [load])
+
+  useLiveRefresh(["orders"], load)
 
   const handleExport = () => {
     if (orders.length === 0) return
-    
+
     const headers = ['Order ID', 'Date', 'Customer', 'Amount', 'Payment Method', 'Payment Status']
     const csvContent = [
       headers.join(','),
       ...orders.map(o => [
-        o.id,
+        o.orderNumber || o.id,
         new Date(o.createdAt).toISOString(),
-        `"${o.customerInfo?.name || ''}"`,
+        `"${(o.customer?.fullName || '').replace(/"/g, '""')}"`,
         o.total,
         o.paymentMethod || 'COD',
         o.paymentStatus || 'pending'
@@ -100,10 +101,10 @@ export default function Transactions() {
                 orders.map(o => (
                   <tr key={o.id} className="border-b border-neutral-50 hover:bg-neutral-50/50">
                     <td className="px-6 py-4">
-                      <p className="font-mono text-xs text-neutral-900 mb-1">#{o.id.slice(-6).toUpperCase()}</p>
+                      <p className="font-mono text-xs text-neutral-900 mb-1">{o.orderNumber || `#${o.id.slice(-6).toUpperCase()}`}</p>
                       <p className="text-[11px] text-neutral-400">{new Date(o.createdAt).toLocaleString()}</p>
                     </td>
-                    <td className="px-6 py-4 text-neutral-600">{o.customerInfo?.name || 'Guest'}</td>
+                    <td className="px-6 py-4 text-neutral-600">{o.customer?.fullName || 'Guest'}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         {o.paymentMethod === 'card' ? <CreditCard className="w-4 h-4 text-neutral-400" /> : <Banknote className="w-4 h-4 text-emerald-500" />}
@@ -114,7 +115,7 @@ export default function Transactions() {
                       <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
                         o.paymentStatus === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
                       }`}>
-                        {o.paymentStatus || 'pending'}
+                        {o.paymentStatus || 'unpaid'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right font-medium text-neutral-900">

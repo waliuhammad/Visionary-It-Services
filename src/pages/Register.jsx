@@ -1,13 +1,44 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Monitor, Eye, EyeOff, UserPlus, Mail, Lock, User } from 'lucide-react'
+import { signInWithEmailAndPassword } from 'firebase/auth'
+import { auth } from '../lib/firebase'
+import { api } from '../lib/api'
 
 export default function Register() {
   const [showPass, setShowPass] = useState(false)
   const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' })
+  const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
+    setError(null)
+
+    if (form.password.length < 8) {
+      setError('Password must be at least 8 characters.')
+      return
+    }
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      // 1. Create the account (Firebase Auth user + Firestore profile) on the API
+      await api.post('/auth/register', { fullName: form.name, email: form.email, password: form.password })
+
+      // 2. Sign in with the Firebase Web SDK and exchange the ID token for a session cookie
+      const { user } = await signInWithEmailAndPassword(auth, form.email, form.password)
+      await api.post('/auth/session', { idToken: await user.getIdToken() })
+
+      window.location.href = '/'
+    } catch (err) {
+      setError(err.message || 'Could not create your account. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -54,6 +85,12 @@ export default function Register() {
 
           <h2 className="text-3xl font-display font-bold text-neutral-900 mb-2">Create account</h2>
           <p className="text-neutral-500 mb-8">Get started with your free account today</p>
+
+          {error && (
+            <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium mb-6 border border-red-100">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
@@ -130,9 +167,10 @@ export default function Register() {
 
             <button
               type="submit"
-              className="w-full bg-brand-500 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-brand-600 transition-all shadow-lg shadow-brand-500/20 active:scale-95"
+              disabled={loading}
+              className="w-full bg-brand-500 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-brand-600 transition-all shadow-lg shadow-brand-500/20 active:scale-95 disabled:opacity-70"
             >
-              <UserPlus className="w-4 h-4" /> Create Account
+              <UserPlus className="w-4 h-4" /> {loading ? 'Creating account...' : 'Create Account'}
             </button>
           </form>
 

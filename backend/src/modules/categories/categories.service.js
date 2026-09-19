@@ -1,6 +1,6 @@
 import { categoriesRef } from '../../config/firebase.js';
 import { logger } from '../../utils/logger.js';
-import { HttpError } from '../../utils/response.js';
+import { ApiError } from '../../utils/ApiError.js';
 
 export const categoriesService = {
   /**
@@ -24,10 +24,10 @@ export const categoriesService = {
     const docRef = categoriesRef.doc(id);
     const doc = await docRef.get();
     if (!doc.exists) {
-      throw new HttpError(404, 'Category not found');
+      throw ApiError.notFound('Category not found');
     }
     await docRef.delete();
     logger.info('Category deleted', { id });
-    return true;
+    return { id, ...doc.data() };
   }
 };

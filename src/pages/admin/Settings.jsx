@@ -1,35 +1,48 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Save, AlertTriangle, Image as ImageIcon } from 'lucide-react'
 import PageHeader from '../../components/admin/PageHeader'
 import PillButton from '../../components/admin/PillButton'
-import { api } from '../../lib/api'
+import { api, errorMessage } from '../../lib/api'
+import { useLiveRefresh } from '../../context/RealtimeContext'
+import ImageUploader from '../../components/admin/ImageUploader'
 
 export default function Settings() {
   const [settings, setSettings] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [dirty, setDirty] = useState(false)
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await api.get('/settings')
-        setSettings(res.data)
-      } catch (err) {
-        console.error('Failed to load settings', err)
-      } finally {
-        setLoading(false)
-      }
+  const load = useCallback(async () => {
+    try {
+      const res = await api.get('/settings')
+      setSettings({ heroBanners: [], ...res.data })
+      setDirty(false)
+    } catch (err) {
+      console.error('Failed to load settings', err)
+    } finally {
+      setLoading(false)
     }
-    load()
   }, [])
+
+  useEffect(() => { load() }, [load])
+
+  // Pick up changes made by another admin, unless there are unsaved edits here
+  useLiveRefresh(['settings'], () => { if (!dirty) load() })
+
+  const update = (next) => {
+    setSettings(next)
+    setDirty(true)
+  }
 
   const handleSave = async () => {
     setSaving(true)
     try {
-      await api.patch('/settings', settings)
+      const { freeShippingThreshold, shippingFee, heroBanners } = settings
+      await api.patch('/settings', { freeShippingThreshold, shippingFee, heroBanners })
+      setDirty(false)
       alert('Settings saved successfully')
     } catch (err) {
-      alert('Failed to save settings')
+      alert(errorMessage(err))
     } finally {
       setSaving(false)
     }
@@ -64,7 +77,7 @@ export default function Settings() {
               <input
                 type="number"
                 value={settings.shippingFee}
-                onChange={e => setSettings({...settings, shippingFee: Number(e.target.value)})}
+                onChange={e => update({...settings, shippingFee: Number(e.target.value)})}
                 className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:border-slate-500"
               />
             </div>
@@ -73,7 +86,7 @@ export default function Settings() {
               <input
                 type="number"
                 value={settings.freeShippingThreshold}
-                onChange={e => setSettings({...settings, freeShippingThreshold: Number(e.target.value)})}
+                onChange={e => update({...settings, freeShippingThreshold: Number(e.target.value)})}
                 className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:border-slate-500"
               />
             </div>
@@ -84,10 +97,10 @@ export default function Settings() {
         <section className="bg-white rounded-3xl p-8 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-display font-bold text-lg">Homepage Banners</h3>
-            <button 
+            <button
               onClick={() => {
                 const newId = Date.now().toString();
-                setSettings({
+                update({
                   ...settings,
                   heroBanners: [...settings.heroBanners, { id: newId, title: '', caption: '', image: '' }]
                 })
@@ -97,7 +110,7 @@ export default function Settings() {
               Add Banner +
             </button>
           </div>
-          
+
           <div className="space-y-4">
             {settings.heroBanners?.map((banner, i) => (
               <div key={banner.id} className="flex gap-6 p-4 border border-neutral-100 rounded-2xl">
@@ -114,19 +127,29 @@ export default function Settings() {
                     value={banner.image || ''}
                     onChange={e => {
                       const newBanners = [...settings.heroBanners]
-                      newBanners[i].image = e.target.value
-                      setSettings({...settings, heroBanners: newBanners})
+                      newBanners[i] = { ...newBanners[i], image: e.target.value }
+                      update({...settings, heroBanners: newBanners})
                     }}
-                    placeholder="Image URL"
+                    placeholder="Image URL (or upload below)"
                     className="w-full px-3 py-1.5 bg-neutral-50 border border-transparent hover:border-neutral-200 focus:border-slate-500 rounded-lg text-sm text-neutral-600 focus:outline-none transition-colors"
+                  />
+                  <ImageUploader
+                    max={1}
+                    folder="banners"
+                    value={banner.image ? [banner.image] : []}
+                    onChange={([image = '']) => {
+                      const newBanners = [...settings.heroBanners]
+                      newBanners[i] = { ...newBanners[i], image }
+                      update({...settings, heroBanners: newBanners})
+                    }}
                   />
                   <input
                     type="text"
                     value={banner.title}
                     onChange={e => {
                       const newBanners = [...settings.heroBanners]
-                      newBanners[i].title = e.target.value
-                      setSettings({...settings, heroBanners: newBanners})
+                      newBanners[i] = { ...newBanners[i], title: e.target.value }
+                      update({...settings, heroBanners: newBanners})
                     }}
                     placeholder="Banner Title"
                     className="w-full px-3 py-1.5 bg-neutral-50 border border-transparent hover:border-neutral-200 focus:border-slate-500 rounded-lg text-sm font-bold focus:outline-none transition-colors"
@@ -136,18 +159,18 @@ export default function Settings() {
                     value={banner.caption}
                     onChange={e => {
                       const newBanners = [...settings.heroBanners]
-                      newBanners[i].caption = e.target.value
-                      setSettings({...settings, heroBanners: newBanners})
+                      newBanners[i] = { ...newBanners[i], caption: e.target.value }
+                      update({...settings, heroBanners: newBanners})
                     }}
                     placeholder="Caption text"
                     className="w-full px-3 py-1.5 bg-neutral-50 border border-transparent hover:border-neutral-200 focus:border-slate-500 rounded-lg text-sm text-neutral-600 focus:outline-none transition-colors"
                   />
                 </div>
                 <div className="flex flex-col justify-center">
-                  <button 
+                  <button
                     onClick={() => {
                       const newBanners = settings.heroBanners.filter((b, idx) => idx !== i)
-                      setSettings({...settings, heroBanners: newBanners})
+                      update({...settings, heroBanners: newBanners})
                     }}
                     className="text-xs text-red-500 font-bold px-3 py-2 hover:bg-red-50 rounded-lg transition-colors"
                   >

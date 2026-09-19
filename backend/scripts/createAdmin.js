@@ -1,60 +1,63 @@
+/**
+ * Create a new admin user, or promote an existing Firebase Auth user to admin.
+ *
+ *   npm run create-admin -- <email> [password] ["Full Name"]
+ */
 import { auth, usersRef } from '../src/config/firebase.js';
 
-const args = process.argv.slice(2);
+const [email, password, name] = process.argv.slice(2);
 
-if (args.length < 1) {
-  console.error('Usage: node scripts/createAdmin.js <email> [password] [name]');
+if (!email) {
+  console.error('Usage: npm run create-admin -- <email> [password] ["Full Name"]');
   process.exit(1);
 }
 
-const [email, password, name] = args;
-
 const run = async () => {
+  let userRecord;
+  let created = false;
+
   try {
-    let userRecord;
-    try {
-      userRecord = await auth.getUserByEmail(email);
-      console.log(`Found existing user with email ${email} (UID: ${userRecord.uid})`);
-    } catch (error) {
-      if (error.code === 'auth/user-not-found') {
-        if (!password) {
-          console.error('Error: Password is required to create a new user.');
-          process.exit(1);
-        }
-        console.log(`Creating new user with email ${email}...`);
-        userRecord = await auth.createUser({
-          email,
-          password,
-          displayName: name || 'Admin',
-        });
-      } else {
-        throw error;
-      }
-    }
-
-    const uid = userRecord.uid;
-
-    console.log('Setting custom claims...');
-    await auth.setCustomUserClaims(uid, { role: 'admin' });
-
-    console.log('Mirroring role to Firestore...');
-    await usersRef.doc(uid).set({
-      uid,
-      email,
-      fullName: userRecord.displayName,
-      role: 'admin',
-      updatedAt: new Date().toISOString()
-    }, { merge: true });
-
-    console.log('Revoking refresh tokens...');
-    await auth.revokeRefreshTokens(uid);
-
-    console.log(`✅ User ${email} is now an admin.`);
-    process.exit(0);
+    userRecord = await auth.getUserByEmail(email);
+    console.log(`Found existing user ${email} (UID: ${userRecord.uid})`);
   } catch (error) {
-    console.error('❌ Failed to create/promote admin:', error);
-    process.exit(1);
+    if (error.code !== 'auth/user-not-found') throw error;
+    if (!password) {
+      throw new Error('A password (min 6 characters) is required to create a new user.');
+    }
+    console.log(`Creating new user ${email}...`);
+    userRecord = await auth.createUser({ email, password, displayName: name || 'Admin' });
+    created = true;
   }
+
+  const { uid } = userRecord;
+  const now = new Date().toISOString();
+
+  console.log('Setting admin custom claim...');
+  await auth.setCustomUserClaims(uid, { ...userRecord.customClaims, role: 'admin' });
+
+  console.log('Mirroring profile to Firestore...');
+  const existing = await usersRef.doc(uid).get();
+  await usersRef.doc(uid).set({
+    uid,
+    email,
+    fullName: name || userRecord.displayName || 'Admin',
+    role: 'admin',
+    emailVerified: userRecord.emailVerified,
+    ...(!existing.exists && { createdAt: now }),
+    updatedAt: now,
+  }, { merge: true });
+
+  if (!created) {
+    // Existing sessions still carry the old role; force a fresh sign-in
+    await auth.revokeRefreshTokens(uid);
+  }
+
+  console.log(`✅ ${email} is now an admin. Sign in at /login.`);
 };
 
-run();
+run()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error('❌ Failed to create/promote admin:', error.message);
+    process.exit(1);
+  });

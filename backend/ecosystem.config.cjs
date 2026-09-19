@@ -3,8 +3,9 @@ module.exports = {
     {
       name: 'visionary-api',
       script: 'src/server.js',
-      instances: 'max',
-      exec_mode: 'cluster',
+      // One instance: live-visitor presence for the admin panel is kept in memory
+      instances: 1,
+      exec_mode: 'fork',
       max_memory_restart: '400M',
       autorestart: true,
       watch: false,

@@ -1,64 +1,79 @@
-import { auth, usersRef, db } from '../../config/firebase.js';
+import { auth, usersRef } from '../../config/firebase.js';
+import { SESSION_DURATION_MS } from '../../config/cookies.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { logger } from '../../utils/logger.js';
 
+// ID tokens older than this cannot be exchanged for a session cookie
+const MAX_SIGN_IN_AGE_SECONDS = 5 * 60;
+
+const now = () => new Date().toISOString();
+
+/**
+ * Create the Firestore profile for an existing Firebase Auth user.
+ * Used for users created outside the API (Firebase Console, Google sign-in, ...).
+ */
+const createProfileFromAuth = async (userRecord) => {
+  const profile = {
+    uid: userRecord.uid,
+    fullName: userRecord.displayName || userRecord.email?.split('@')[0] || '',
+    email: userRecord.email || null,
+    role: userRecord.customClaims?.role || 'customer',
+    emailVerified: userRecord.emailVerified,
+    createdAt: userRecord.metadata.creationTime
+      ? new Date(userRecord.metadata.creationTime).toISOString()
+      : now(),
+    updatedAt: now(),
+  };
+  await usersRef.doc(userRecord.uid).set(profile, { merge: true });
+  return profile;
+};
+
 export const authService = {
   /**
-   * Register a new user and mirror to Firestore.
+   * Register a new customer in Firebase Auth and mirror the profile to Firestore.
+   * The client should then sign in with the Firebase Web SDK and call POST /auth/session.
    */
   register: async ({ email, password, fullName }) => {
-    // 1. Create user in Firebase Auth
-    const userRecord = await auth.createUser({
-      email,
-      password,
-      displayName: fullName,
-    });
+    const userRecord = await auth.createUser({ email, password, displayName: fullName });
+    const { uid } = userRecord;
 
-    const uid = userRecord.uid;
+    try {
+      await auth.setCustomUserClaims(uid, { role: 'customer' });
+      await usersRef.doc(uid).set({
+        uid,
+        fullName,
+        email,
+        role: 'customer',
+        emailVerified: false,
+        createdAt: now(),
+        updatedAt: now(),
+      });
+    } catch (error) {
+      // Roll back so the email can be used again
+      await auth.deleteUser(uid).catch(() => {});
+      throw error;
+    }
 
-    // 2. Set custom claims (default role: customer)
-    await auth.setCustomUserClaims(uid, { role: 'customer' });
-
-    // 3. Mirror user in Firestore
-    const userDoc = {
-      uid,
-      fullName,
-      email,
-      role: 'customer',
-      emailVerified: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    await usersRef.doc(uid).set(userDoc);
-
-    logger.info('User registered', { uid, email });
-    return { uid, email, role: 'customer' };
+    logger.info('User registered', { uid });
+    return { uid, email, fullName, role: 'customer' };
   },
 
   /**
-   * Mint a session cookie from an ID token.
+   * Exchange a freshly issued ID token for a long-lived session cookie.
    */
   createSession: async (idToken) => {
-    // Verify the token
-    const decodedToken = await auth.verifyIdToken(idToken);
-    
-    // Check if the user signed in recently (within the last 5 minutes)
-    if (new Date().getTime() / 1000 - decodedToken.auth_time > 5 * 60) {
+    const decoded = await auth.verifyIdToken(idToken, true);
+
+    if (Date.now() / 1000 - decoded.auth_time > MAX_SIGN_IN_AGE_SECONDS) {
       throw ApiError.unauthorized('Recent sign-in required');
     }
 
-    // Set session expiration to 5 days
-    const expiresIn = 60 * 60 * 24 * 5 * 1000;
-    
-    // Create the session cookie
-    const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
-    
-    return { sessionCookie, expiresIn };
+    const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn: SESSION_DURATION_MS });
+    return { sessionCookie, uid: decoded.uid, role: decoded.role || 'customer', email: decoded.email, name: decoded.name };
   },
 
   /**
-   * Revoke refresh tokens for a user.
+   * Revoke all refresh tokens / sessions for a user (signs them out everywhere).
    */
   revokeTokens: async (uid) => {
     await auth.revokeRefreshTokens(uid);
@@ -66,54 +81,61 @@ export const authService = {
   },
 
   /**
-   * Get current user details from Firestore.
+   * Current user's profile. The role is taken from the verified token claims,
+   * which is authoritative; the Firestore copy is only a mirror for querying.
    */
-  getMe: async (uid) => {
+  getMe: async (decodedToken) => {
+    const { uid } = decodedToken;
     const doc = await usersRef.doc(uid).get();
-    if (!doc.exists) {
-      throw ApiError.notFound('User profile not found');
-    }
-    return doc.data();
+    const profile = doc.exists ? doc.data() : await createProfileFromAuth(await auth.getUser(uid));
+
+    return {
+      ...profile,
+      uid,
+      role: decodedToken.role || 'customer',
+      emailVerified: decodedToken.email_verified ?? profile.emailVerified ?? false,
+    };
   },
 
   /**
-   * Generate a password reset link.
-   * Note: Usually the client Web SDK calls sendPasswordResetEmail directly,
-   * but if the backend must do it, it generates a link.
+   * Generate a password reset link. Returns null for unknown emails so the
+   * endpoint response never reveals whether an account exists.
    */
   generatePasswordReset: async (email) => {
     try {
-      const link = await auth.generatePasswordResetLink(email);
-      return link;
+      // Checked first: for an unknown address Firebase can fail with an unhelpful
+      // internal error instead of auth/user-not-found
+      await auth.getUserByEmail(email);
     } catch (error) {
-      if (error.code === 'auth/user-not-found') {
-        // Silently succeed to prevent email enumeration
-        return null;
-      }
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/email-not-found') return null;
       throw error;
+    }
+
+    try {
+      return await auth.generatePasswordResetLink(email);
+    } catch (error) {
+      // Never surface the reason: the response must look the same for every address
+      logger.error('Could not create password reset link', { error: error.message });
+      return null;
     }
   },
 
   /**
-   * Update a user's role (Admin only).
+   * Update a user's role (admin only).
    */
-  setRole: async (uid, role) => {
-    // 1. Check if user exists
-    await auth.getUser(uid);
-    
-    // 2. Set custom claims
-    await auth.setCustomUserClaims(uid, { role });
-    
-    // 3. Mirror in Firestore
-    await usersRef.doc(uid).update({
-      role,
-      updatedAt: new Date().toISOString()
-    });
-    
-    // 4. Revoke tokens to force the user to re-authenticate and get the new claim
+  setRole: async (uid, role, actorUid) => {
+    if (uid === actorUid && role !== 'admin') {
+      throw ApiError.badRequest('You cannot remove your own admin role');
+    }
+
+    const userRecord = await auth.getUser(uid);
+
+    await auth.setCustomUserClaims(uid, { ...userRecord.customClaims, role });
+    await usersRef.doc(uid).set({ role, updatedAt: now() }, { merge: true });
+    // Force the user to re-authenticate so their token carries the new claim
     await auth.revokeRefreshTokens(uid);
-    
-    logger.info('User role updated', { uid, role });
-    return { uid, role };
-  }
+
+    logger.info('User role updated', { uid, role, by: actorUid });
+    return { uid, role, email: userRecord.email };
+  },
 };

@@ -2,7 +2,10 @@ import { contactMessagesRef } from '../../config/firebase.js';
 import { logger } from '../../utils/logger.js';
 import { sendEmail } from '../../utils/mailer.js';
 import { env } from '../../config/env.js';
-import { HttpError } from '../../utils/response.js';
+import { ApiError } from '../../utils/ApiError.js';
+
+const escapeHtml = (value = '') =>
+  String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 export const contactService = {
   create: async (data) => {
@@ -25,15 +28,17 @@ export const contactService = {
     logger.info('Contact message saved', { id: docRef.id });
 
     // Optionally notify admin
-    if (env.SMTP_USER) {
+    const notifyTo = env.ADMIN_EMAIL || env.SMTP_USER;
+    if (notifyTo) {
       await sendEmail({
-        to: env.SMTP_USER, // Send to the configured system user
-        subject: `New Contact Request: ${data.subject}`,
+        to: notifyTo,
+        subject: `New Contact Request: ${data.subject.replace(/[\r\n]+/g, ' ')}`,
         html: `
-          <p><strong>Name:</strong> ${data.name}</p>
-          <p><strong>Email:</strong> ${data.email}</p>
+          <p><strong>Name:</strong> ${escapeHtml(data.name)}</p>
+          <p><strong>Email:</strong> ${escapeHtml(data.email)}</p>
+          <p><strong>Subject:</strong> ${escapeHtml(data.subject)}</p>
           <p><strong>Message:</strong></p>
-          <p>${data.message.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>")}</p>
+          <p>${escapeHtml(data.message).replace(/\n/g, '<br>')}</p>
         `
       });
     }
@@ -51,7 +56,7 @@ export const contactService = {
     const doc = await docRef.get();
     
     if (!doc.exists) {
-      throw new HttpError(404, 'Message not found');
+      throw ApiError.notFound('Message not found');
     }
 
     await docRef.update(data);
@@ -65,7 +70,7 @@ export const contactService = {
     const doc = await docRef.get();
     
     if (!doc.exists) {
-      throw new HttpError(404, 'Message not found');
+      throw ApiError.notFound('Message not found');
     }
 
     await docRef.delete();

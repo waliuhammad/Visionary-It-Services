@@ -7,46 +7,43 @@ import morgan from 'morgan';
 import { env } from './config/env.js';
 import { errorHandler, notFoundHandler } from './middleware/error.js';
 import { globalLimiter } from './middleware/rateLimit.js';
+import { ApiError } from './utils/ApiError.js';
 import { response } from './utils/response.js';
-
-// Route registry
 import routes from './routes/index.js';
 
 const app = express();
 
-// Trust proxy required for secure cookies and correct IP behind Nginx
+// Required for secure cookies and correct client IPs behind Nginx / a load balancer
 app.set('trust proxy', 1);
+app.disable('x-powered-by');
 
-// Middleware
 app.use(helmet());
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || env.CORS_ORIGINS.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
+    // Requests without an Origin header (curl, server-to-server, same-origin) are allowed
+    if (!origin || env.CORS_ORIGINS.includes(origin)) return callback(null, true);
+    callback(ApiError.forbidden(`Origin ${origin} is not allowed by CORS`));
   },
   credentials: true,
 }));
-app.use(compression());
-app.use(express.json());
+app.use(compression({
+  // Server-Sent Events must be streamed unbuffered
+  filter: (req, res) => !String(res.getHeader('Content-Type') || '').includes('text/event-stream') && compression.filter(req, res),
+}));
+app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
-app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));
+if (env.NODE_ENV !== 'test') {
+  app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));
+}
 
-// Global rate limiter (except for health check)
-app.use(env.API_PREFIX, globalLimiter);
+// Health checks (not rate limited)
+const health = (req, res) => response.ok(res, { status: 'healthy', timestamp: new Date().toISOString() });
+app.get('/health', health);
+app.get(`${env.API_PREFIX}/health`, health);
 
-// Health check (outside API prefix and rate limiter)
-app.get('/health', (req, res) => response.ok(res, { status: 'healthy', timestamp: new Date().toISOString() }));
+app.use(env.API_PREFIX, globalLimiter, routes);
 
-// API routes
-app.use(env.API_PREFIX, routes);
-
-// 404 handler
 app.use(notFoundHandler);
-
-// Central error handler
 app.use(errorHandler);
 
 export default app;

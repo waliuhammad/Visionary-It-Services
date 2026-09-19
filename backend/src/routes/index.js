@@ -8,6 +8,8 @@ import contactRoutes from '../modules/contact/contact.routes.js';
 import newsletterRoutes from '../modules/newsletter/newsletter.routes.js';
 import settingsRoutes from '../modules/settings/settings.routes.js';
 import adminRoutes from '../modules/admin/admin.routes.js';
+import uploadsRoutes from '../modules/uploads/uploads.routes.js';
+import trackingRoutes from '../modules/tracking/tracking.routes.js';
 
 const router = Router();
 
@@ -20,5 +22,7 @@ router.use('/contact', contactRoutes);
 router.use('/newsletter', newsletterRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/admin', adminRoutes);
+router.use('/uploads', uploadsRoutes);
+router.use('/track', trackingRoutes);
 
 export default router;

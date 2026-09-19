@@ -32,11 +32,20 @@ export const usersService = {
   },
 
   findAll: async () => {
-    const snapshot = await usersRef.orderBy('createdAt', 'desc').get();
-    return snapshot.docs.map(doc => doc.data());
+    // Sorted in memory: orderBy() would silently drop profiles that lack createdAt
+    const snapshot = await usersRef.get();
+    return snapshot.docs
+      .map(doc => ({ uid: doc.id, ...doc.data() }))
+      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
   },
 
-  delete: async (uid) => {
+  delete: async (uid, actorUid) => {
+    if (uid === actorUid) {
+      throw ApiError.badRequest('You cannot delete your own account');
+    }
+
+    const profile = (await usersRef.doc(uid).get()).data();
+
     // 1. Delete from Firebase Auth
     try {
       await auth.deleteUser(uid);
@@ -50,5 +59,6 @@ export const usersService = {
     await usersRef.doc(uid).delete();
     
     logger.info('User deleted by admin', { uid });
+    return profile || { uid };
   }
 };

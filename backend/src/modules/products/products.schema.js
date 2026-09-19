@@ -2,10 +2,11 @@ import { z } from 'zod';
 
 export const getProductsSchema = z.object({
   query: z.object({
-    page: z.coerce.number().min(1).default(1),
-    limit: z.coerce.number().min(1).max(60).default(12),
-    category: z.string().optional(),
-    search: z.string().optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    // The admin panel loads the whole catalogue in one request
+    limit: z.coerce.number().int().min(1).max(1000).default(12),
+    category: z.string().trim().optional(),
+    search: z.string().trim().optional(),
     minPrice: z.coerce.number().min(0).optional(),
     maxPrice: z.coerce.number().min(0).optional(),
     bestSeller: z.enum(['true', 'false']).transform(val => val === 'true').optional(),
@@ -15,16 +16,18 @@ export const getProductsSchema = z.object({
 });
 
 const productBodySchema = z.object({
-  name: z.string().min(2),
-  slug: z.string().min(2),
-  category: z.enum(['Digital Service', 'Mobile App', 'Productivity', 'SaaS', 'Software', 'Template']),
-  shortDescription: z.string().min(10),
-  description: z.string().min(20),
+  name: z.string().trim().min(2),
+  slug: z.string().trim().min(2).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be lowercase letters, numbers and hyphens'),
+  // Categories are managed from the admin panel (/categories), so any name is accepted
+  category: z.string().trim().min(2),
+  shortDescription: z.string().trim().optional(),
+  description: z.string().trim().min(10),
   price: z.number().min(0),
   currency: z.string().default('PKR'),
   priceLabel: z.string().optional(),
-  image: z.string().url(),
-  images: z.array(z.string().url()).default([]),
+  // Absolute URL or a site-relative path such as /images/products/x.webp
+  image: z.string().trim().min(1),
+  images: z.array(z.string().trim().min(1)).default([]),
   bestSeller: z.boolean().default(false),
   badge: z.string().optional(),
   inStock: z.boolean().default(true),
@@ -40,7 +43,15 @@ export const updateProductSchema = z.object({
   params: z.object({
     id: z.string()
   }),
-  body: productBodySchema.partial()
+  // .partial() alone would still apply the defaults above and overwrite stored values
+  body: z.object(
+    Object.fromEntries(
+      Object.entries(productBodySchema.shape).map(([key, schema]) => [
+        key,
+        (schema instanceof z.ZodDefault ? schema.removeDefault() : schema).optional(),
+      ])
+    )
+  )
 });
 
 export const getProductSchema = z.object({

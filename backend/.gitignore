@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Environment & credentials (never commit)
+.env
+.env.*
+!.env.example
+serviceAccountKey*.json
+*-firebase-adminsdk-*.json
+
+# Build output & logs
+dist/
+logs/
+*.log
+
+# OS / editor
+.DS_Store
+.vscode/*
+.idea/
+
+# Script output
+image-migration-report.json

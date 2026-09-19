@@ -1,84 +1,55 @@
 import { auth } from '../config/firebase.js';
+import { SESSION_COOKIE_NAME } from '../config/cookies.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { logger } from '../utils/logger.js';
 
 /**
- * Extracts the ID token or Session Cookie from the request.
+ * Resolves the caller from either an `Authorization: Bearer <idToken>` header
+ * (mobile apps / API clients) or the `__session` cookie (browser).
+ * Revoked tokens are rejected. Returns the decoded claims, or null.
  */
-const extractToken = (req) => {
-  if (req.headers.authorization?.startsWith('Bearer ')) {
-    return req.headers.authorization.split('Bearer ')[1];
-  }
-  if (req.cookies?.__session) {
-    return req.cookies.__session;
+const resolveUser = async (req) => {
+  const header = req.headers.authorization;
+
+  try {
+    if (header?.startsWith('Bearer ')) {
+      return await auth.verifyIdToken(header.slice(7), true);
+    }
+    const cookie = req.cookies?.[SESSION_COOKIE_NAME];
+    if (cookie) {
+      return await auth.verifySessionCookie(cookie, true);
+    }
+  } catch (error) {
+    logger.warn('Token verification failed', { code: error.code ?? error.message });
   }
   return null;
 };
 
-/**
- * Verifies the token and attaches the decoded user to req.user.
- * This is used internally by the auth middlewares.
- */
-const verifyAndAttachUser = async (req) => {
-  const token = extractToken(req);
-  if (!token) return null;
-
-  try {
-    // If it's a session cookie (JWT from createSessionCookie)
-    if (req.cookies?.__session && token === req.cookies.__session) {
-      const decodedCookie = await auth.verifySessionCookie(token, true);
-      return decodedCookie;
-    }
-    
-    // Otherwise it's an ID token
-    const decodedToken = await auth.verifyIdToken(token, true);
-    return decodedToken;
-  } catch (error) {
-    logger.warn('Token verification failed', { error: error.code || error.message });
-    return null;
-  }
-};
-
-/**
- * Middleware: Requires the user to be authenticated.
- */
+/** Requires an authenticated user; sets req.user to the decoded token (uid, email, role, ...). */
 export const requireAuth = asyncHandler(async (req, res, next) => {
-  const user = await verifyAndAttachUser(req);
-  if (!user) {
-    throw ApiError.unauthorized('Authentication required');
-  }
+  const user = await resolveUser(req);
+  if (!user) throw ApiError.unauthorized('Authentication required');
   req.user = user;
   next();
 });
 
-/**
- * Middleware: Attaches the user to req.user if authenticated, but does not reject if not.
- */
+/** Sets req.user when a valid token is present, otherwise null. Never rejects. */
 export const optionalAuth = asyncHandler(async (req, res, next) => {
-  const user = await verifyAndAttachUser(req);
-  req.user = user || null;
+  req.user = await resolveUser(req);
   next();
 });
 
 /**
- * Middleware: Requires the user to have one of the specified roles.
- * Must be used after requireAuth.
+ * Requires one of the given roles. Roles come from Firebase custom claims,
+ * which are the source of truth for access control. Use after requireAuth.
  */
 export const requireRole = (...roles) => (req, res, next) => {
-  if (!req.user) {
-    throw ApiError.unauthorized('Authentication required');
+  if (!req.user) throw ApiError.unauthorized('Authentication required');
+  if (!roles.includes(req.user.role)) {
+    throw ApiError.forbidden('You do not have permission to perform this action');
   }
-  
-  if (!req.user.role || !roles.includes(req.user.role)) {
-    throw ApiError.forbidden(`Requires one of roles: ${roles.join(', ')}`);
-  }
-  
   next();
 };
 
-/**
- * Middleware: Requires the user to be an admin.
- * Must be used after requireAuth.
- */
 export const requireAdmin = requireRole('admin');

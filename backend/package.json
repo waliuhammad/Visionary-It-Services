@@ -1,18 +1,25 @@
 {
-  "name": "backend",
+  "name": "visionary-it-services-api",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "description": "REST API for Visionary IT Services — Express 5, Firebase Authentication and Cloud Firestore",
+  "private": true,
   "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "build": "node scripts/build.js",
+    "seed": "node scripts/seed.js",
+    "seed:wipe": "node scripts/seed.js --wipe",
+    "create-admin": "node scripts/createAdmin.js",
+    "deploy:firestore": "firebase deploy --only firestore:rules,firestore:indexes",
+    "images:migrate": "node scripts/migrateImages.js"
+  },
   "dependencies": {
+    "cloudinary": "^2.11.0",
     "compression": "^1.8.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
@@ -22,6 +29,7 @@
     "firebase-admin": "^14.4.0",
     "helmet": "^8.3.0",
     "morgan": "^1.12.1",
+    "multer": "^2.4.0",
     "nodemailer": "^10.0.10",
     "zod": "^4.6.5"
   }

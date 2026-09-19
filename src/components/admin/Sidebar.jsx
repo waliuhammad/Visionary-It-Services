@@ -1,12 +1,17 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   Monitor, LayoutDashboard, Package, FolderOpen, ShoppingCart,
-  Receipt, Settings, Mail, Users, ChevronRight, LogOut, ExternalLink
+  Receipt, Settings, Mail, Users, ChevronRight, LogOut, ExternalLink, Activity
 } from 'lucide-react'
+import { signOut } from 'firebase/auth'
 import { api } from '../../lib/api'
+import { auth } from '../../lib/firebase'
+import { useRealtime } from '../../context/RealtimeContext'
+import LiveIndicator from './LiveIndicator'
 
 const navItems = [
   { to: '/admin',              icon: LayoutDashboard, label: 'Overview',       accent: 'bg-blue-100 text-blue-600' },
+  { to: '/admin/activity',     icon: Activity,        label: 'Live Activity',  accent: 'bg-teal-100 text-teal-600' },
   { to: '/admin/products',     icon: Package,         label: 'Products',       accent: 'bg-emerald-100 text-emerald-600' },
   { to: '/admin/categories',   icon: FolderOpen,      label: 'Categories',     accent: 'bg-orange-100 text-orange-600' },
   { to: '/admin/orders',       icon: ShoppingCart,     label: 'Orders',         accent: 'bg-violet-100 text-violet-600' },
@@ -18,10 +23,17 @@ const navItems = [
 
 export default function Sidebar() {
   const location = useLocation()
+  const { stats } = useRealtime()
+  const badges = {
+    '/admin/orders': stats?.pendingOrders,
+    '/admin/messages': stats?.unreadMessages,
+    '/admin/activity': stats?.liveVisitors,
+  }
 
   const handleLogout = async () => {
     try {
       await api.post('/auth/logout')
+      await signOut(auth)
     } catch {
       // Even if the API call fails, redirect
     }
@@ -44,6 +56,9 @@ export default function Sidebar() {
         <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-neutral-400 ml-[52px]">
           Command Center • V1.0
         </p>
+        <div className="ml-[52px] mt-2">
+          <LiveIndicator />
+        </div>
       </div>
 
       {/* Navigation */}
@@ -67,7 +82,12 @@ export default function Sidebar() {
                 }`}
               >
                 <Icon className="w-[18px] h-[18px]" strokeWidth={isActive ? 2.2 : 1.8} />
-                <span>{label}</span>
+                <span className="flex-1">{label}</span>
+                {badges[to] > 0 && (
+                  <span className="min-w-5 h-5 px-1.5 rounded-full bg-neutral-900 text-white text-[10px] font-bold flex items-center justify-center">
+                    {badges[to]}
+                  </span>
+                )}
               </NavLink>
             )
           })}

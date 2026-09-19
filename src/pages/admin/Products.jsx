@@ -1,9 +1,25 @@
-import { useState, useEffect } from 'react'
-import { Plus, Search, Edit2, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Plus, Search, Edit2, Trash2, Package } from 'lucide-react'
 import PageHeader from '../../components/admin/PageHeader'
 import PillButton from '../../components/admin/PillButton'
 import StatusDot from '../../components/admin/StatusDot'
-import { api } from '../../lib/api'
+import ProductForm from '../../components/admin/ProductForm'
+import { useLiveRefresh } from '../../context/RealtimeContext'
+import { api, errorMessage } from '../../lib/api'
+
+const PAGE_SIZE = 50
+
+function Thumb({ src, alt }) {
+  const [failed, setFailed] = useState(false)
+  if (!src || failed) {
+    return (
+      <div className="w-10 h-10 rounded-lg bg-neutral-100 flex items-center justify-center shrink-0" title={src ? 'Image not found' : 'No image'}>
+        <Package className="w-5 h-5 text-neutral-300" />
+      </div>
+    )
+  }
+  return <img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} className="w-10 h-10 rounded-lg object-cover bg-neutral-100 shrink-0" />
+}
 
 export default function Products() {
   const [products, setProducts] = useState([])
@@ -11,37 +27,45 @@ export default function Products() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
+  const [editing, setEditing] = useState(undefined) // undefined = closed, null = new, object = edit
+  const [visible, setVisible] = useState(PAGE_SIZE)
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [prodRes, catRes] = await Promise.all([
-          api.get('/products?limit=999'),
-          api.get('/categories'),
-        ])
-        setProducts(prodRes.data || [])
-        setCategories(catRes.data || [])
-      } catch (err) {
-        console.error('Failed to load products', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
+  const load = useCallback(async () => {
+    const [prodRes, catRes] = await Promise.all([
+      api.get('/products?limit=1000'),
+      api.get('/categories'),
+    ])
+    setProducts(prodRes.data || [])
+    setCategories(catRes.data || [])
   }, [])
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this product?')) return
+  useEffect(() => {
+    load().catch((err) => console.error('Failed to load products', err)).finally(() => setLoading(false))
+  }, [load])
+
+  useLiveRefresh(['products', 'categories'], load)
+
+  const handleDelete = async (product) => {
+    if (!window.confirm(`Delete "${product.name}"? Its images will also be removed from Cloudinary.`)) return
     try {
-      await api.del(`/products/${id}`)
-      setProducts(prev => prev.filter(p => p.id !== id))
+      await api.del(`/products/${product.id}`)
+      setProducts((prev) => prev.filter((p) => p.id !== product.id))
     } catch (err) {
-      alert('Failed to delete product')
+      alert(errorMessage(err))
     }
   }
 
-  const filtered = products.filter(p => {
-    const matchSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const handleSaved = (saved) => {
+    setProducts((prev) => {
+      const exists = prev.some((p) => p.id === saved.id)
+      return exists ? prev.map((p) => (p.id === saved.id ? saved : p)) : [saved, ...prev]
+    })
+    setEditing(undefined)
+  }
+
+  const term = searchTerm.trim().toLowerCase()
+  const filtered = products.filter((p) => {
+    const matchSearch = !term || p.name.toLowerCase().includes(term) || p.slug?.includes(term)
     const matchCat = categoryFilter ? p.category === categoryFilter : true
     return matchSearch && matchCat
   })
@@ -50,9 +74,9 @@ export default function Products() {
     <div>
       <PageHeader
         firstWord="Manage" secondWord="Products" accentColor="text-emerald-500"
-        subtitle="View and edit your store inventory"
+        subtitle={`View and edit your store inventory · ${products.length} products`}
       >
-        <PillButton label="New Product" icon={Plus} variant="success" onClick={() => alert('TODO: Implement product creation modal')} />
+        <PillButton label="New Product" icon={Plus} variant="success" onClick={() => setEditing(null)} />
       </PageHeader>
 
       <div className="bg-white rounded-3xl p-6 shadow-sm mb-8">
@@ -63,17 +87,17 @@ export default function Products() {
               type="text"
               placeholder="Search products..."
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={(e) => { setSearchTerm(e.target.value); setVisible(PAGE_SIZE) }}
               className="w-full pl-10 pr-4 py-2 bg-neutral-50 border border-neutral-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
             />
           </div>
           <select
             value={categoryFilter}
-            onChange={e => setCategoryFilter(e.target.value)}
+            onChange={(e) => { setCategoryFilter(e.target.value); setVisible(PAGE_SIZE) }}
             className="px-4 py-2 bg-neutral-50 border border-neutral-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
           >
             <option value="">All Categories</option>
-            {categories.map(c => (
+            {categories.map((c) => (
               <option key={c.id || c.name} value={c.name}>{c.name}</option>
             ))}
           </select>
@@ -100,20 +124,14 @@ export default function Products() {
                   <td colSpan={5} className="py-8 text-center text-neutral-400">No products found.</td>
                 </tr>
               ) : (
-                filtered.map(p => (
+                filtered.slice(0, visible).map((p) => (
                   <tr key={p.id} className="border-b border-neutral-50 hover:bg-neutral-50/50 transition-colors">
                     <td className="py-3">
                       <div className="flex items-center gap-3">
-                        {p.imageUrl ? (
-                          <img src={p.imageUrl} alt={p.name} className="w-10 h-10 rounded-lg object-cover bg-neutral-100" />
-                        ) : (
-                          <div className="w-10 h-10 rounded-lg bg-neutral-100 flex items-center justify-center">
-                            <Package className="w-5 h-5 text-neutral-300" />
-                          </div>
-                        )}
+                        <Thumb src={p.image} alt={p.name} />
                         <div>
                           <p className="font-semibold text-neutral-900">{p.name}</p>
-                          <p className="text-xs text-neutral-400 truncate max-w-[200px]">{p.description}</p>
+                          <p className="text-xs text-neutral-400 truncate max-w-[260px]">{p.shortDescription || p.description}</p>
                         </div>
                       </div>
                     </td>
@@ -128,10 +146,10 @@ export default function Products() {
                     </td>
                     <td className="py-3">
                       <div className="flex justify-end gap-2">
-                        <button onClick={() => alert('TODO: Implement edit modal')} className="p-1.5 text-neutral-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
+                        <button onClick={() => setEditing(p)} title="Edit" className="p-1.5 text-neutral-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleDelete(p.id)} className="p-1.5 text-neutral-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                        <button onClick={() => handleDelete(p)} title="Delete" className="p-1.5 text-neutral-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -142,7 +160,22 @@ export default function Products() {
             </tbody>
           </table>
         </div>
+
+        {filtered.length > visible && (
+          <div className="pt-5 text-center">
+            <PillButton label={`Show more (${filtered.length - visible} remaining)`} variant="secondary" onClick={() => setVisible((v) => v + PAGE_SIZE)} />
+          </div>
+        )}
       </div>
+
+      {editing !== undefined && (
+        <ProductForm
+          product={editing}
+          categories={categories}
+          onClose={() => setEditing(undefined)}
+          onSaved={handleSaved}
+        />
+      )}
     </div>
   )
 }

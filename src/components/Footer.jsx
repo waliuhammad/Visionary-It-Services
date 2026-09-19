@@ -1,5 +1,50 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Monitor, Mail, Phone, MapPin } from 'lucide-react'
+import { api, errorMessage } from '../lib/api'
+
+function NewsletterForm() {
+  const [email, setEmail] = useState('')
+  const [state, setState] = useState({ status: 'idle', message: '' })
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setState({ status: 'sending', message: '' })
+    try {
+      await api.post('/newsletter/subscribe', { email })
+      setEmail('')
+      setState({ status: 'done', message: 'Thanks! You are subscribed.' })
+    } catch (err) {
+      setState({ status: 'error', message: errorMessage(err) })
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="w-full md:w-auto">
+      <div className="flex w-full md:w-auto gap-3">
+        <input
+          type="email"
+          required
+          aria-label="Email address"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="your@email.com"
+          className="w-full md:w-80 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-[#3b82f6] text-white placeholder:text-[#64748b] transition-all"
+        />
+        <button
+          type="submit"
+          disabled={state.status === 'sending'}
+          className="px-6 py-3 bg-[#3b82f6] text-white font-bold rounded-xl text-sm hover:bg-[#2563eb] transition-colors whitespace-nowrap disabled:opacity-60"
+        >
+          {state.status === 'sending' ? 'Subscribing…' : 'Subscribe'}
+        </button>
+      </div>
+      {state.message && (
+        <p role="status" className={`text-xs mt-2 ${state.status === 'error' ? 'text-red-400' : 'text-emerald-400'}`}>{state.message}</p>
+      )}
+    </form>
+  )
+}
 
 export default function Footer() {
   return (
@@ -118,16 +163,7 @@ export default function Footer() {
             <h3 className="text-xl font-bold mb-2">Stay in the Loop</h3>
             <p className="text-[#94a3b8] text-sm">Get the latest deals and product updates delivered to your inbox.</p>
           </div>
-          <div className="flex w-full md:w-auto gap-3">
-            <input
-              type="email"
-              placeholder="your@email.com"
-              className="w-full md:w-80 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-[#3b82f6] text-white placeholder:text-[#64748b] transition-all"
-            />
-            <button className="px-6 py-3 bg-[#3b82f6] text-white font-bold rounded-xl text-sm hover:bg-[#2563eb] transition-colors whitespace-nowrap">
-              Subscribe
-            </button>
-          </div>
+          <NewsletterForm />
         </div>
 
         {/* Bottom bar */}

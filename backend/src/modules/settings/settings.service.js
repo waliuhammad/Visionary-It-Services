@@ -1,7 +1,7 @@
-import { db } from '../../config/firebase.js';
+import { settingsRef as settingsCollection } from '../../config/firebase.js';
 import { logger } from '../../utils/logger.js';
 
-const settingsRef = db.collection('settings').doc('site');
+const settingsRef = settingsCollection.doc('site');
 
 export const settingsService = {
   get: async () => {

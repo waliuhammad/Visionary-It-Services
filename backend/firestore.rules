@@ -43,6 +43,15 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Admin audit log and traffic analytics (written and read via the API only)
+    match /activityLog/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /analytics/{document=**} {
+      allow read, write: if false;
+    }
+
     // Catch-all deny
     match /{document=**} {
       allow read, write: if false;

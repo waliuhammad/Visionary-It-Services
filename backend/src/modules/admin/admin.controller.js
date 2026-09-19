@@ -1,4 +1,6 @@
 import { adminService } from './admin.service.js';
+import { activityService } from '../activity/activity.service.js';
+import { getVisitors } from '../../realtime/hub.js';
 import { response } from '../../utils/response.js';
 
 export const adminController = {
@@ -8,8 +10,21 @@ export const adminController = {
   },
 
   getChart: async (req, res) => {
-    const days = parseInt(req.query.days) || 7;
-    const data = await adminService.getChart(days);
+    const data = await adminService.getChart(req.query.days);
     return response.ok(res, data);
-  }
+  },
+
+  getActivity: async (req, res) => {
+    const data = await activityService.list(req.query);
+    return response.ok(res, data);
+  },
+
+  getVisitors: async (req, res) => {
+    return response.ok(res, getVisitors());
+  },
+
+  getAnalytics: async (req, res) => {
+    const data = await adminService.getAnalytics(req.query.days);
+    return response.ok(res, data);
+  },
 };

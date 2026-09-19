@@ -1,11 +1,17 @@
 import { ordersService } from './orders.service.js';
 import { response } from '../../utils/response.js';
+import { recordActivity } from '../activity/activity.service.js';
 
 export const ordersController = {
   createOrder: async (req, res) => {
     // req.user might be null if guest
     const userId = req.user ? req.user.uid : null;
     const data = await ordersService.create(userId, req.body);
+    recordActivity(req, {
+      action: 'order.created', entity: 'order', entityId: data.id,
+      summary: `New order ${data.orderNumber} from ${data.customer.fullName} (${data.currency} ${data.total.toLocaleString()})`,
+      meta: { total: data.total, items: data.items.length },
+    });
     return response.created(res, data);
   },
 
@@ -30,6 +36,11 @@ export const ordersController = {
 
   updateOrderStatus: async (req, res) => {
     const data = await ordersService.updateStatus(req.params.id, req.body);
+    recordActivity(req, {
+      action: 'order.status_changed', entity: 'order', entityId: data.id,
+      summary: `Order ${data.orderNumber} is now ${data.status} (payment: ${data.paymentStatus})`,
+      meta: req.body,
+    });
     return response.ok(res, data);
   }
 };

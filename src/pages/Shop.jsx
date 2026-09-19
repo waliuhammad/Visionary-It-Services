@@ -1,40 +1,46 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  Search, SlidersHorizontal, Monitor, Grid3X3, List,
-  Star, ShoppingCart, Eye, ChevronDown, X, ArrowRight
+  Search, ShoppingCart, Eye, ChevronDown, X, ArrowRight
 } from 'lucide-react'
 
-import allProductsData from '../data/products.json'
 import { useCart } from '../context/CartContext'
-import { fadeUp, EASE } from '../lib/motion'
+import { useProducts } from '../context/ProductsContext'
+import ProductImage from '../components/ProductImage'
+import { fadeUp } from '../lib/motion'
 
-const colors = ['bg-blue-500', 'bg-emerald-500', 'bg-purple-500', 'bg-orange-500', 'bg-cyan-500', 'bg-rose-500', 'bg-violet-500', 'bg-green-500']
-
-const allProducts = allProductsData.map((p, index) => ({
-  ...p,
-  tag: p.badge || 'New',
-  desc: p.description || '',
-  color: colors[index % colors.length]
-}))
-
-const categories = ['All', ...new Set(allProductsData.map(p => p.category).filter(Boolean))]
+const PAGE_SIZE = 24
 
 export default function Shop() {
-  const [search, setSearch] = useState('')
-  const [selectedCat, setSelectedCat] = useState('All')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [search, setSearch] = useState(searchParams.get('q') || '')
+  const [selectedCat, setSelectedCat] = useState(searchParams.get('category') || 'All')
   const [sortBy, setSortBy] = useState('popular')
+  const [visible, setVisible] = useState(PAGE_SIZE)
   const { addToCart } = useCart()
+  const { products, categories: productCategories, status } = useProducts()
+  const categories = ['All', ...productCategories]
 
-  const filtered = allProducts
+  // Keep the URL shareable (/shop?q=seo&category=SaaS)
+  useEffect(() => {
+    const next = {}
+    if (search) next.q = search
+    if (selectedCat !== 'All') next.category = selectedCat
+    setSearchParams(next, { replace: true })
+    setVisible(PAGE_SIZE)
+  }, [search, selectedCat, setSearchParams])
+
+  const term = search.trim().toLowerCase()
+  const filtered = products
     .filter((p) => selectedCat === 'All' || p.category === selectedCat)
-    .filter((p) => (p.name || '').toLowerCase().includes(search.toLowerCase()))
+    .filter((p) => !term || `${p.name} ${p.desc} ${p.category}`.toLowerCase().includes(term))
     .sort((a, b) => {
       if (sortBy === 'price-low') return a.price - b.price
       if (sortBy === 'price-high') return b.price - a.price
-      if (sortBy === 'rating') return b.rating - a.rating
-      return b.reviews - a.reviews
+      if (sortBy === 'newest') return (b.createdAt || '').localeCompare(a.createdAt || '')
+      if (sortBy === 'name') return a.name.localeCompare(b.name)
+      return 0 // "Featured": the API already returns best sellers first
     })
 
   return (
@@ -97,7 +103,8 @@ export default function Shop() {
               <option value="popular">Featured</option>
               <option value="price-low">Price: Low to High</option>
               <option value="price-high">Price: High to Low</option>
-              <option value="rating">Top Rated</option>
+              <option value="newest">Newest</option>
+              <option value="name">Name: A to Z</option>
             </select>
             <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
           </div>
@@ -106,31 +113,30 @@ export default function Shop() {
 
       {/* Products Grid */}
       <div className="max-w-7xl mx-auto px-6">
-        <p className="text-neutral-500 text-sm mb-6">{filtered.length} products found</p>
+        <p className="text-neutral-500 text-sm mb-6">
+          {status === 'loading' ? 'Loading products…' : `${filtered.length} products found`}
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filtered.map((product, index) => (
+          {filtered.slice(0, visible).map((product, index) => (
             <motion.div
               key={product.id}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, amount: 0.15 }}
               variants={fadeUp}
-              transition={{ delay: Math.min(index * 0.05, 0.4) }}
+              transition={{ delay: Math.min((index % PAGE_SIZE) * 0.03, 0.3) }}
               className="bg-white border border-neutral-100 hover:border-neutral-200 rounded-[2.5rem] overflow-hidden group transition-all shadow-sm hover:shadow-md flex flex-col product-card-hover"
             >
               <div className="relative h-55 bg-neutral-100 flex items-center justify-center overflow-hidden shrink-0">
-                {product.image ? (
-                  <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                ) : (
-                  <div className={`w-16 h-16 ${product.color} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                    <Monitor className="w-8 h-8 text-white" />
-                  </div>
-                )}
+                <ProductImage product={product} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" iconClassName="w-10 h-10" />
 
                 {/* Dark overlay on hover */}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
                 {/* Badge */}
+                {product.inStock === false && (
+                  <span className="absolute top-5 right-5 px-3 py-1.5 bg-neutral-900 text-white text-[11px] font-bold uppercase rounded-xl z-10">Sold out</span>
+                )}
                 <span className="absolute top-5 left-5 px-4 py-1.5 bg-[#2f88ff] text-white text-[11px] font-bold uppercase rounded-xl tracking-wide shadow-sm z-10">
                   {product.tag}
                 </span>
@@ -145,7 +151,9 @@ export default function Shop() {
                   </Link>
                   <button
                     onClick={() => addToCart(product)}
-                    className="w-14 h-14 bg-white rounded-[1.25rem] shadow-xl flex items-center justify-center hover:scale-105 transition-transform"
+                    disabled={product.inStock === false}
+                    aria-label={`Add ${product.name} to cart`}
+                    className="disabled:opacity-40 w-14 h-14 bg-white rounded-[1.25rem] shadow-xl flex items-center justify-center hover:scale-105 transition-transform"
                   >
                     <ShoppingCart className="w-5 h-5 text-neutral-800" />
                   </button>
@@ -176,7 +184,18 @@ export default function Shop() {
           ))}
         </div>
 
-        {filtered.length === 0 && (
+        {filtered.length > visible && (
+          <div className="text-center mt-10">
+            <button
+              onClick={() => setVisible((v) => v + PAGE_SIZE)}
+              className="px-8 py-3.5 rounded-xl border border-neutral-200 font-bold text-sm text-neutral-700 hover:border-neutral-400 transition-colors"
+            >
+              Load more ({filtered.length - visible} more)
+            </button>
+          </div>
+        )}
+
+        {filtered.length === 0 && status !== 'loading' && (
           <div className="text-center py-20">
             <Search className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
             <h3 className="font-bold text-neutral-900 mb-2">No products found</h3>

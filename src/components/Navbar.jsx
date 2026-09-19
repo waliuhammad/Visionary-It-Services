@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '../context/CartContext'
 import { EASE } from '../lib/motion'
 
-import allProductsData from '../data/products.json'
+import { useProducts } from '../context/ProductsContext'
+import ProductImage from './ProductImage'
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -15,6 +16,7 @@ export default function Navbar() {
   const location = useLocation()
   const navigate = useNavigate()
   const { getCartCount } = useCart()
+  const { products } = useProducts()
   const cartCount = getCartCount()
   const searchRef = useRef(null)
   const inputRef = useRef(null)
@@ -62,15 +64,16 @@ export default function Navbar() {
 
   // Filter products based on search query
   const searchResults = searchQuery.trim()
-    ? allProductsData
-        .filter(p => (p.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
+    ? products
+        .filter(p => (p.name || '').toLowerCase().includes(searchQuery.trim().toLowerCase()))
         .slice(0, 4)
     : []
 
   const handleViewAll = () => {
+    const q = searchQuery.trim()
     setSearchOpen(false)
     setSearchQuery('')
-    navigate('/shop')
+    navigate(q ? `/shop?q=${encodeURIComponent(q)}` : '/shop')
   }
 
   return (
@@ -163,13 +166,7 @@ export default function Navbar() {
                               className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-neutral-50 transition-colors"
                             >
                               <div className="w-12 h-12 bg-neutral-100 rounded-xl overflow-hidden shrink-0">
-                                {product.image ? (
-                                  <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full bg-brand-100 flex items-center justify-center">
-                                    <Monitor className="w-5 h-5 text-brand-500" />
-                                  </div>
-                                )}
+                                <ProductImage product={product} iconClassName="w-5 h-5" />
                               </div>
                               <div>
                                 <p className="font-bold text-neutral-900 text-sm">{product.name}</p>

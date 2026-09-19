@@ -1,18 +1,41 @@
 import { useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Mail, Phone, MapPin, Send, Clock, MessageSquare, ArrowRight, Zap, Headphones, Users, ChevronDown } from 'lucide-react'
+import { Mail, Phone, MapPin, Send, Clock, ArrowRight, Zap, Headphones, Users, ChevronDown } from 'lucide-react'
 
 import Reveal from '../components/Reveal'
-import { EASE, fadeUp, stagger } from '../lib/motion'
-export default function Contact() {
-  const [form, setForm] = useState({ name: '', email: '', subject: 'General Support', message: '' })
-  const [submitted, setSubmitted] = useState(false)
+import { fadeUp, stagger } from '../lib/motion'
+import { api, errorMessage } from '../lib/api'
 
-  const handleSubmit = (e) => {
+const SUBJECTS = ['General Support', 'Enterprise License', 'Technical Support', 'Partnership', 'Custom Development']
+const EMPTY = { name: '', email: '', subject: 'General Support', message: '', website: '' }
+
+export default function Contact() {
+  // Other pages can pre-fill the form, e.g. "Ask a question" on a product page
+  const { state } = useLocation()
+  const [form, setForm] = useState(() => ({
+    ...EMPTY,
+    ...(SUBJECTS.includes(state?.subject) && { subject: state.subject }),
+    ...(state?.message && { message: state.message }),
+  }))
+  const [submitted, setSubmitted] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState(null)
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    setSubmitted(true)
-    setTimeout(() => setSubmitted(false), 3000)
-    setForm({ name: '', email: '', subject: 'General Support', message: '' })
+    setError(null)
+    setSending(true)
+    try {
+      await api.post('/contact', form)
+      setSubmitted(true)
+      setForm(EMPTY)
+      setTimeout(() => setSubmitted(false), 8000)
+    } catch (err) {
+      setError(errorMessage(err))
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -145,13 +168,29 @@ export default function Contact() {
               </div>
 
               <div className="p-8">
+                {error && (
+                  <div role="alert" className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-medium whitespace-pre-line">
+                    {error}
+                  </div>
+                )}
                 {submitted && (
-                  <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-sm font-medium">
+                  <div role="status" className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-sm font-medium">
                     ✓ Message sent successfully! We'll get back to you within 24 hours.
                   </div>
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-5">
+                  {/* Honeypot: hidden from people, filled in by spam bots */}
+                  <input
+                    type="text"
+                    name="website"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    aria-hidden="true"
+                    value={form.website}
+                    onChange={(e) => setForm({ ...form, website: e.target.value })}
+                    className="hidden"
+                  />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-500 mb-2 block">Full Name</label>
@@ -185,11 +224,7 @@ export default function Contact() {
                         onChange={(e) => setForm({ ...form, subject: e.target.value })}
                         className="w-full px-4 py-3 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-all appearance-none bg-white pr-10 cursor-pointer text-neutral-700"
                       >
-                        <option>General Support</option>
-                        <option>Enterprise License</option>
-                        <option>Technical Support</option>
-                        <option>Partnership</option>
-                        <option>Custom Development</option>
+                        {SUBJECTS.map((subject) => <option key={subject}>{subject}</option>)}
                       </select>
                       <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
                     </div>
@@ -199,6 +234,8 @@ export default function Contact() {
                     <label className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-500 mb-2 block">Your Message</label>
                     <textarea
                       required
+                      minLength={10}
+                      maxLength={5000}
                       rows={5}
                       value={form.message}
                       onChange={(e) => setForm({ ...form, message: e.target.value })}
@@ -209,14 +246,15 @@ export default function Contact() {
 
                   <button
                     type="submit"
-                    className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 active:scale-[0.98]"
+                    disabled={sending}
+                    className="disabled:opacity-60 w-full bg-blue-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 active:scale-[0.98]"
                   >
-                    <Send className="w-4 h-4" /> Send Message
+                    <Send className="w-4 h-4" /> {sending ? 'Sending…' : 'Send Message'}
                   </button>
 
                   <p className="text-center text-neutral-400 text-xs mt-2">
                     We never share your data. See our{' '}
-                    <a href="#" className="text-blue-500 hover:underline">privacy policy</a>.
+                    <a href="/privacy" className="text-blue-500 hover:underline">privacy policy</a>.
                   </p>
                 </form>
               </div>
