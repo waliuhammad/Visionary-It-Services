@@ -35,11 +35,11 @@ cd ..
 
 ## 4. Add the credentials
 
-Secrets are **not** in this repository, so a fresh clone cannot start without them. Ask the project owner for:
+The **API** cannot start without credentials, and they are not in this repository. Ask the project owner for:
 
 | File | Where it goes | What it holds |
 |---|---|---|
-| `.env` | project root | Firebase Web config + API address |
+| `.env` | project root | *Optional in development.* Only needed to point at a different Firebase project or a deployed API |
 | `backend/.env` | `backend/` | Firebase service account, Cloudinary keys, SMTP |
 | `backend/serviceAccountKey.json` | `backend/` | Firebase Admin key (only if `backend/.env` points at it) |
 

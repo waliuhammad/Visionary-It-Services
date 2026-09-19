@@ -23,7 +23,7 @@ npm install
 npm run dev                 # http://localhost:8080
 
 # 2. Website (terminal 2, project root)
-cp .env.example .env        # add your Firebase Web app config
+# optional: .env only to override the Firebase project or API address
 npm install
 npm run dev                 # http://localhost:5173 (/api is proxied to the backend)
 ```
