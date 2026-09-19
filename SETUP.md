@@ -102,6 +102,7 @@ Then sign in at <http://localhost:5173/login>.
 | `EADDRINUSE: 8080` | Another API is already running; close it or set `PORT` in `backend/.env` |
 | `Image storage is not configured` | The `CLOUDINARY_*` values are missing from `backend/.env` |
 | `firebase use must be run from a Firebase project directory` | Run Firebase CLI commands inside `backend/` |
+| `Origin http://localhost:5173 is not allowed` | Restart the API after pulling; in development any localhost port is allowed |
 | Admin panel bounces you to `/login` | Your account is not an admin (step 6) |
 
 ## Working on the code

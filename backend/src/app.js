@@ -18,11 +18,17 @@ app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
 app.use(helmet());
+// Any localhost port is allowed outside production, so a dev machine works out of the box
+const isLocalhost = (origin) => /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin);
+
 app.use(cors({
   origin: (origin, callback) => {
     // Requests without an Origin header (curl, server-to-server, same-origin) are allowed
     if (!origin || env.CORS_ORIGINS.includes(origin)) return callback(null, true);
-    callback(ApiError.forbidden(`Origin ${origin} is not allowed by CORS`));
+    if (env.NODE_ENV !== 'production' && isLocalhost(origin)) return callback(null, true);
+    callback(ApiError.forbidden(
+      `Origin ${origin} is not allowed. Add it to CORS_ORIGINS in the API .env file.`
+    ));
   },
   credentials: true,
 }));
