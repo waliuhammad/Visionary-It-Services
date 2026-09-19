@@ -13,6 +13,8 @@ Visionary-It-Services/
 
 ## Local development
 
+New to the project? [SETUP.md](SETUP.md) walks through it step by step.
+
 ```bash
 # 1. API (terminal 1)
 cd backend
