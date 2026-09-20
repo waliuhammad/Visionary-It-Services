@@ -54,11 +54,11 @@ export default function ImageUploader({ value = [], onChange, max = 6, folder = 
           <div key={url} className="relative aspect-square rounded-xl overflow-hidden bg-neutral-100 group">
             <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.opacity = 0.2 }} />
             {i === 0 && (
-              <span className="absolute left-1.5 top-1.5 text-[9px] font-bold uppercase tracking-wider bg-emerald-500 text-white px-1.5 py-0.5 rounded">Main</span>
+              <span className="absolute left-1.5 top-1.5 text-[9px] font-bold uppercase tracking-wider bg-brand-500 text-white px-1.5 py-0.5 rounded">Main</span>
             )}
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex items-center justify-center gap-2">
               {i > 0 && (
-                <button type="button" onClick={() => makeMain(url)} title="Make main image" className="p-1.5 bg-white rounded-lg text-amber-500">
+                <button type="button" onClick={() => makeMain(url)} title="Make main image" className="p-1.5 bg-white rounded-lg text-brand-500">
                   <Star className="w-4 h-4" />
                 </button>
               )}
@@ -78,7 +78,7 @@ export default function ImageUploader({ value = [], onChange, max = 6, folder = 
             onDrop={(e) => { e.preventDefault(); setDragging(false); handleFiles(e.dataTransfer.files) }}
             disabled={progress !== null}
             className={`aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 text-xs font-semibold transition-colors ${
-              dragging ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : 'border-neutral-200 text-neutral-400 hover:border-emerald-400 hover:text-emerald-600'
+              dragging ? 'border-brand-500 bg-brand-50 text-brand-600' : 'border-neutral-200 text-neutral-400 hover:border-brand-400 hover:text-brand-600'
             }`}
           >
             {progress !== null ? (

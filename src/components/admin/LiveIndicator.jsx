@@ -2,8 +2,8 @@ import { useRealtime } from '../../context/RealtimeContext'
 import StatusDot from './StatusDot'
 
 const STATES = {
-  live: { color: 'bg-emerald-400', label: 'Live', pulse: true },
-  connecting: { color: 'bg-amber-400', label: 'Connecting…', pulse: true },
+  live: { color: 'bg-brand-400', label: 'Live', pulse: true },
+  connecting: { color: 'bg-brand-400', label: 'Connecting…', pulse: true },
   offline: { color: 'bg-red-400', label: 'Offline — retrying', pulse: false },
 }
 

@@ -10,15 +10,15 @@ import { useRealtime } from '../../context/RealtimeContext'
 import LiveIndicator from './LiveIndicator'
 
 const navItems = [
-  { to: '/admin',              icon: LayoutDashboard, label: 'Overview',       accent: 'bg-blue-100 text-blue-600' },
-  { to: '/admin/activity',     icon: Activity,        label: 'Live Activity',  accent: 'bg-teal-100 text-teal-600' },
-  { to: '/admin/products',     icon: Package,         label: 'Products',       accent: 'bg-emerald-100 text-emerald-600' },
-  { to: '/admin/categories',   icon: FolderOpen,      label: 'Categories',     accent: 'bg-orange-100 text-orange-600' },
-  { to: '/admin/orders',       icon: ShoppingCart,     label: 'Orders',         accent: 'bg-violet-100 text-violet-600' },
+  { to: '/admin',              icon: LayoutDashboard, label: 'Overview',       accent: 'bg-brand-100 text-brand-600' },
+  { to: '/admin/activity',     icon: Activity,        label: 'Live Activity',  accent: 'bg-brand-100 text-brand-600' },
+  { to: '/admin/products',     icon: Package,         label: 'Products',       accent: 'bg-brand-100 text-brand-600' },
+  { to: '/admin/categories',   icon: FolderOpen,      label: 'Categories',     accent: 'bg-brand-100 text-brand-600' },
+  { to: '/admin/orders',       icon: ShoppingCart,     label: 'Orders',         accent: 'bg-brand-100 text-brand-600' },
   { to: '/admin/transactions', icon: Receipt,         label: 'Transactions',   accent: 'bg-cyan-100 text-cyan-600' },
-  { to: '/admin/settings',     icon: Settings,        label: 'Settings',       accent: 'bg-slate-200 text-slate-600' },
-  { to: '/admin/messages',     icon: Mail,            label: 'Messages',       accent: 'bg-pink-100 text-pink-600' },
-  { to: '/admin/team',         icon: Users,           label: 'Team & Roles',   accent: 'bg-amber-100 text-amber-600' },
+  { to: '/admin/settings',     icon: Settings,        label: 'Settings',       accent: 'bg-brand-200 text-brand-600' },
+  { to: '/admin/messages',     icon: Mail,            label: 'Messages',       accent: 'bg-brand-100 text-brand-600' },
+  { to: '/admin/team',         icon: Users,           label: 'Team & Roles',   accent: 'bg-brand-100 text-brand-600' },
 ]
 
 export default function Sidebar() {
@@ -45,7 +45,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="px-7 pt-7 pb-5">
         <div className="flex items-center gap-3 mb-1.5">
-          <div className="bg-[#1890ff] p-2.5 rounded-xl shadow-lg shadow-blue-500/20">
+          <div className="bg-[#1890ff] p-2.5 rounded-xl shadow-lg shadow-brand-500/20">
             <Monitor className="text-white w-5 h-5" />
           </div>
           <span className="text-xl font-display font-bold tracking-tight">

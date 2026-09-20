@@ -73,7 +73,7 @@ export default function Products() {
   return (
     <div>
       <PageHeader
-        firstWord="Manage" secondWord="Products" accentColor="text-emerald-500"
+        firstWord="Manage" secondWord="Products" accentColor="text-brand-500"
         subtitle={`View and edit your store inventory · ${products.length} products`}
       >
         <PillButton label="New Product" icon={Plus} variant="success" onClick={() => setEditing(null)} />
@@ -88,13 +88,13 @@ export default function Products() {
               placeholder="Search products..."
               value={searchTerm}
               onChange={(e) => { setSearchTerm(e.target.value); setVisible(PAGE_SIZE) }}
-              className="w-full pl-10 pr-4 py-2 bg-neutral-50 border border-neutral-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="w-full pl-10 pr-4 py-2 bg-neutral-50 border border-neutral-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
             />
           </div>
           <select
             value={categoryFilter}
             onChange={(e) => { setCategoryFilter(e.target.value); setVisible(PAGE_SIZE) }}
-            className="px-4 py-2 bg-neutral-50 border border-neutral-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            className="px-4 py-2 bg-neutral-50 border border-neutral-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
           >
             <option value="">All Categories</option>
             {categories.map((c) => (
@@ -139,14 +139,14 @@ export default function Products() {
                     <td className="py-3 font-medium">Rs. {p.price?.toLocaleString()}</td>
                     <td className="py-3">
                       {p.inStock !== false ? (
-                        <StatusDot color="bg-emerald-400" label="In Stock" />
+                        <StatusDot color="bg-brand-400" label="In Stock" />
                       ) : (
                         <StatusDot color="bg-red-400" label="Out of Stock" />
                       )}
                     </td>
                     <td className="py-3">
                       <div className="flex justify-end gap-2">
-                        <button onClick={() => setEditing(p)} title="Edit" className="p-1.5 text-neutral-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
+                        <button onClick={() => setEditing(p)} title="Edit" className="p-1.5 text-neutral-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors">
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button onClick={() => handleDelete(p)} title="Delete" className="p-1.5 text-neutral-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">

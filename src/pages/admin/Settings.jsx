@@ -53,17 +53,17 @@ export default function Settings() {
   return (
     <div className="max-w-4xl">
       <PageHeader
-        firstWord="Store" secondWord="Settings" accentColor="text-slate-500"
+        firstWord="Store" secondWord="Settings" accentColor="text-brand-500"
         subtitle="Global configuration and homepage banners"
       >
         <PillButton label={saving ? 'Saving...' : 'Save Changes'} icon={Save} variant="primary" onClick={handleSave} disabled={saving} />
       </PageHeader>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-4 mb-8">
-        <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+      <div className="bg-brand-50 border border-brand-200 rounded-2xl p-4 flex items-start gap-4 mb-8">
+        <AlertTriangle className="w-5 h-5 text-brand-500 shrink-0 mt-0.5" />
         <div>
-          <h4 className="font-bold text-amber-800 mb-1">Live Updates</h4>
-          <p className="text-sm text-amber-700">Changes made here will be reflected on the storefront immediately after saving.</p>
+          <h4 className="font-bold text-brand-800 mb-1">Live Updates</h4>
+          <p className="text-sm text-brand-700">Changes made here will be reflected on the storefront immediately after saving.</p>
         </div>
       </div>
 
@@ -78,7 +78,7 @@ export default function Settings() {
                 type="number"
                 value={settings.shippingFee}
                 onChange={e => update({...settings, shippingFee: Number(e.target.value)})}
-                className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:border-slate-500"
+                className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:border-brand-500"
               />
             </div>
             <div>
@@ -87,7 +87,7 @@ export default function Settings() {
                 type="number"
                 value={settings.freeShippingThreshold}
                 onChange={e => update({...settings, freeShippingThreshold: Number(e.target.value)})}
-                className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:border-slate-500"
+                className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:border-brand-500"
               />
             </div>
           </div>
@@ -105,7 +105,7 @@ export default function Settings() {
                   heroBanners: [...settings.heroBanners, { id: newId, title: '', caption: '', image: '' }]
                 })
               }}
-              className="text-sm font-bold text-blue-600 hover:text-blue-700"
+              className="text-sm font-bold text-brand-600 hover:text-brand-700"
             >
               Add Banner +
             </button>
@@ -131,7 +131,7 @@ export default function Settings() {
                       update({...settings, heroBanners: newBanners})
                     }}
                     placeholder="Image URL (or upload below)"
-                    className="w-full px-3 py-1.5 bg-neutral-50 border border-transparent hover:border-neutral-200 focus:border-slate-500 rounded-lg text-sm text-neutral-600 focus:outline-none transition-colors"
+                    className="w-full px-3 py-1.5 bg-neutral-50 border border-transparent hover:border-neutral-200 focus:border-brand-500 rounded-lg text-sm text-neutral-600 focus:outline-none transition-colors"
                   />
                   <ImageUploader
                     max={1}
@@ -152,7 +152,7 @@ export default function Settings() {
                       update({...settings, heroBanners: newBanners})
                     }}
                     placeholder="Banner Title"
-                    className="w-full px-3 py-1.5 bg-neutral-50 border border-transparent hover:border-neutral-200 focus:border-slate-500 rounded-lg text-sm font-bold focus:outline-none transition-colors"
+                    className="w-full px-3 py-1.5 bg-neutral-50 border border-transparent hover:border-neutral-200 focus:border-brand-500 rounded-lg text-sm font-bold focus:outline-none transition-colors"
                   />
                   <input
                     type="text"
@@ -163,7 +163,7 @@ export default function Settings() {
                       update({...settings, heroBanners: newBanners})
                     }}
                     placeholder="Caption text"
-                    className="w-full px-3 py-1.5 bg-neutral-50 border border-transparent hover:border-neutral-200 focus:border-slate-500 rounded-lg text-sm text-neutral-600 focus:outline-none transition-colors"
+                    className="w-full px-3 py-1.5 bg-neutral-50 border border-transparent hover:border-neutral-200 focus:border-brand-500 rounded-lg text-sm text-neutral-600 focus:outline-none transition-colors"
                   />
                 </div>
                 <div className="flex flex-col justify-center">

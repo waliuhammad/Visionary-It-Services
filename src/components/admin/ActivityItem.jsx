@@ -5,14 +5,14 @@ import {
 import { timeAgo } from '../../lib/format'
 
 const ENTITY_STYLE = {
-  order: { icon: ShoppingCart, cls: 'bg-violet-100 text-violet-600' },
-  product: { icon: Package, cls: 'bg-emerald-100 text-emerald-600' },
-  category: { icon: FolderOpen, cls: 'bg-orange-100 text-orange-600' },
-  user: { icon: User, cls: 'bg-amber-100 text-amber-600' },
-  message: { icon: Mail, cls: 'bg-pink-100 text-pink-600' },
-  settings: { icon: Settings, cls: 'bg-slate-200 text-slate-600' },
+  order: { icon: ShoppingCart, cls: 'bg-brand-100 text-brand-600' },
+  product: { icon: Package, cls: 'bg-brand-100 text-brand-600' },
+  category: { icon: FolderOpen, cls: 'bg-brand-100 text-brand-600' },
+  user: { icon: User, cls: 'bg-brand-100 text-brand-600' },
+  message: { icon: Mail, cls: 'bg-brand-100 text-brand-600' },
+  settings: { icon: Settings, cls: 'bg-brand-200 text-brand-600' },
   upload: { icon: ImageIcon, cls: 'bg-sky-100 text-sky-600' },
-  subscriber: { icon: Newspaper, cls: 'bg-teal-100 text-teal-600' },
+  subscriber: { icon: Newspaper, cls: 'bg-brand-100 text-brand-600' },
 }
 
 const ACTION_ICON = { 'auth.login': LogIn, 'auth.logout': LogOut }

@@ -11,7 +11,7 @@ export default function AdminLayout() {
     return (
       <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-blue-200 border-t-[#1890ff] rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-12 h-12 border-4 border-brand-200 border-t-[#1890ff] rounded-full animate-spin mx-auto mb-4" />
           <p className="text-sm font-semibold text-neutral-400 uppercase tracking-widest">Verifying admin access…</p>
         </div>
       </div>

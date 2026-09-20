@@ -2,11 +2,11 @@
  * StatusDot — colored dot + uppercase label.
  *
  * Props:
- *  - color: Tailwind bg class (e.g. "bg-emerald-400")
+ *  - color: Tailwind bg class (e.g. "bg-brand-400")
  *  - label: string
  *  - pulse: boolean — whether to animate the dot
  */
-export default function StatusDot({ color = 'bg-emerald-400', label, pulse = false }) {
+export default function StatusDot({ color = 'bg-brand-400', label, pulse = false }) {
   return (
     <div className="flex items-center gap-2">
       <span className="relative flex h-2.5 w-2.5">

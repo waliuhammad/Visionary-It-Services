@@ -10,7 +10,7 @@ const EMPTY = {
   shortDescription: '', description: '', bestSeller: false, inStock: true, images: [],
 }
 
-const inputCls = 'w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10'
+const inputCls = 'w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10'
 const labelCls = 'block text-[11px] font-bold uppercase tracking-[0.15em] text-neutral-500 mb-1.5'
 
 /** Create / edit product modal. `product` is null for a new product. */
@@ -130,10 +130,10 @@ export default function ProductForm({ product, categories, onClose, onSaved }) {
             </label>
             <div className="flex items-end gap-6 pb-2">
               <label className="flex items-center gap-2 text-sm font-medium">
-                <input type="checkbox" checked={form.inStock} onChange={set('inStock')} className="w-4 h-4 accent-emerald-500" /> In stock
+                <input type="checkbox" checked={form.inStock} onChange={set('inStock')} className="w-4 h-4 accent-brand-500" /> In stock
               </label>
               <label className="flex items-center gap-2 text-sm font-medium">
-                <input type="checkbox" checked={form.bestSeller} onChange={set('bestSeller')} className="w-4 h-4 accent-emerald-500" /> Best seller
+                <input type="checkbox" checked={form.bestSeller} onChange={set('bestSeller')} className="w-4 h-4 accent-brand-500" /> Best seller
               </label>
             </div>
           </div>

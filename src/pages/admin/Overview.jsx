@@ -106,8 +106,8 @@ export default function Overview() {
   const trafficChart = {
     labels: (traffic?.daily || []).map((d) => dayLabel(d.date)),
     datasets: [
-      { label: 'Page views', data: (traffic?.daily || []).map((d) => d.pageViews), backgroundColor: '#14b8a6', borderRadius: 6 },
-      { label: 'Visitors', data: (traffic?.daily || []).map((d) => d.visitors), backgroundColor: '#99f6e4', borderRadius: 6 },
+      { label: 'Page views', data: (traffic?.daily || []).map((d) => d.pageViews), backgroundColor: '#1890ff', borderRadius: 6 },
+      { label: 'Visitors', data: (traffic?.daily || []).map((d) => d.visitors), backgroundColor: '#91d5ff', borderRadius: 6 },
     ],
   }
 
@@ -124,7 +124,7 @@ export default function Overview() {
   if (loading && !stats) {
     return (
       <div>
-        <PageHeader firstWord="Store" secondWord="Insights" accentColor="text-blue-500" subtitle="Your command center for everything Visionary IT" />
+        <PageHeader firstWord="Store" secondWord="Insights" accentColor="text-brand-500" subtitle="Your command center for everything Visionary IT" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="bg-white rounded-3xl p-6 animate-pulse">
@@ -143,12 +143,12 @@ export default function Overview() {
       <PageHeader
         firstWord="Store"
         secondWord="Insights"
-        accentColor="text-blue-500"
+        accentColor="text-brand-500"
         subtitle="Your command center for everything Visionary IT"
       >
         <div className="bg-white rounded-2xl px-5 py-3 shadow-sm flex items-center gap-4">
-          <div className="w-9 h-9 rounded-xl bg-teal-100 flex items-center justify-center">
-            <Radio className="w-4 h-4 text-teal-600" />
+          <div className="w-9 h-9 rounded-xl bg-brand-100 flex items-center justify-center">
+            <Radio className="w-4 h-4 text-brand-600" />
           </div>
           <div>
             <p className="text-[9px] font-bold uppercase tracking-widest text-neutral-400">On site now</p>
@@ -163,22 +163,22 @@ export default function Overview() {
       {/* Primary stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-5">
         <StatCard
-          icon={DollarSign} iconBg="bg-emerald-100" iconColor="text-emerald-500"
+          icon={DollarSign} iconBg="bg-brand-100" iconColor="text-brand-500"
           label="Revenue (paid)" value={formatMoney(stats?.revenue)}
-          badge="LIVE" badgeColor="bg-emerald-100 text-emerald-600"
+          badge="LIVE" badgeColor="bg-brand-100 text-brand-600"
         />
         <StatCard
-          icon={ShoppingCart} iconBg="bg-violet-100" iconColor="text-violet-500"
+          icon={ShoppingCart} iconBg="bg-brand-100" iconColor="text-brand-500"
           label="Orders" value={stats?.orderCount || 0}
-          badge={stats?.todayOrders ? `+${stats.todayOrders} TODAY` : null} badgeColor="bg-violet-100 text-violet-600"
+          badge={stats?.todayOrders ? `+${stats.todayOrders} TODAY` : null} badgeColor="bg-brand-100 text-brand-600"
         />
         <StatCard
-          icon={Package} iconBg="bg-orange-100" iconColor="text-orange-500"
+          icon={Package} iconBg="bg-brand-100" iconColor="text-brand-500"
           label="Products" value={stats?.productCount || 0}
-          badge={`${stats?.stockLevel || 0}% IN STOCK`} badgeColor="bg-blue-100 text-blue-600"
+          badge={`${stats?.stockLevel || 0}% IN STOCK`} badgeColor="bg-brand-100 text-brand-600"
         />
         <StatCard
-          icon={Users} iconBg="bg-pink-100" iconColor="text-pink-500"
+          icon={Users} iconBg="bg-brand-100" iconColor="text-brand-500"
           label="Registered Users" value={stats?.userCount || 0}
         />
       </div>
@@ -186,9 +186,9 @@ export default function Overview() {
       {/* Needs attention */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
         {[
-          { to: '/admin/orders', icon: Clock, label: 'Pending orders', value: stats?.pendingOrders || 0, cls: 'text-amber-600 bg-amber-50' },
-          { to: '/admin/messages', icon: Mail, label: 'Unread messages', value: stats?.unreadMessages || 0, cls: 'text-pink-600 bg-pink-50' },
-          { to: '/admin/activity', icon: Eye, label: 'Page views (7 days)', value: traffic?.totals?.pageViews || 0, cls: 'text-teal-600 bg-teal-50' },
+          { to: '/admin/orders', icon: Clock, label: 'Pending orders', value: stats?.pendingOrders || 0, cls: 'text-brand-600 bg-brand-50' },
+          { to: '/admin/messages', icon: Mail, label: 'Unread messages', value: stats?.unreadMessages || 0, cls: 'text-brand-600 bg-brand-50' },
+          { to: '/admin/activity', icon: Eye, label: 'Page views (7 days)', value: traffic?.totals?.pageViews || 0, cls: 'text-brand-600 bg-brand-50' },
         ].map(({ to, icon: Icon, label, value, cls }) => (
           <Link key={to} to={to} className="bg-white rounded-2xl px-5 py-4 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${cls}`}>
@@ -228,7 +228,7 @@ export default function Overview() {
         <div className="bg-white rounded-3xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)] flex flex-col">
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-display font-bold text-neutral-900">Live Activity</h3>
-            <Link to="/admin/activity" className="text-xs font-bold text-teal-600 hover:underline">View all</Link>
+            <Link to="/admin/activity" className="text-xs font-bold text-brand-600 hover:underline">View all</Link>
           </div>
           {activity.length === 0 ? (
             <p className="text-sm text-neutral-400 py-10 text-center">Waiting for activity…</p>
@@ -247,10 +247,10 @@ export default function Overview() {
             <h3 className="font-display font-bold text-neutral-900">Website Traffic</h3>
             <div className="flex items-center gap-5">
               <span className="text-xs text-neutral-500 font-medium">
-                <span className="inline-block w-2.5 h-2.5 rounded-full bg-teal-500 mr-1.5" />Page views ({traffic?.totals?.pageViews || 0})
+                <span className="inline-block w-2.5 h-2.5 rounded-full bg-brand-500 mr-1.5" />Page views ({traffic?.totals?.pageViews || 0})
               </span>
               <span className="text-xs text-neutral-500 font-medium">
-                <span className="inline-block w-2.5 h-2.5 rounded-full bg-teal-200 mr-1.5" />Visitors ({traffic?.totals?.visitors || 0})
+                <span className="inline-block w-2.5 h-2.5 rounded-full bg-brand-200 mr-1.5" />Visitors ({traffic?.totals?.visitors || 0})
               </span>
             </div>
           </div>
@@ -276,9 +276,9 @@ export default function Overview() {
           )}
           <div className="space-y-3 border-t border-white/10 pt-4">
             {[
-              { label: "Today's revenue", value: formatMoney(stats?.todayRevenue), color: 'text-emerald-400' },
-              { label: 'Out of stock', value: stats?.outOfStock || 0, color: 'text-orange-400' },
-              { label: 'Newsletter subscribers', value: stats?.subscribers || 0, color: 'text-pink-400' },
+              { label: "Today's revenue", value: formatMoney(stats?.todayRevenue), color: 'text-brand-400' },
+              { label: 'Out of stock', value: stats?.outOfStock || 0, color: 'text-brand-400' },
+              { label: 'Newsletter subscribers', value: stats?.subscribers || 0, color: 'text-brand-400' },
               { label: 'Admins online', value: stats?.adminsOnline || 0, color: 'text-cyan-400' },
             ].map((row) => (
               <div key={row.label} className="flex justify-between items-center text-sm">

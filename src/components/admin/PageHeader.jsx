@@ -4,11 +4,11 @@
  * Props:
  *  - firstWord: string — black first word (e.g. "Store")
  *  - secondWord: string — colored second word (e.g. "Insights")
- *  - accentColor: string — Tailwind text color for the second word (e.g. "text-blue-500")
+ *  - accentColor: string — Tailwind text color for the second word (e.g. "text-brand-500")
  *  - subtitle: string — italic gray subtitle beneath the heading
  *  - children: ReactNode — optional top-right slot (stat card, button, etc.)
  */
-export default function PageHeader({ firstWord, secondWord, accentColor = 'text-blue-500', subtitle, children }) {
+export default function PageHeader({ firstWord, secondWord, accentColor = 'text-brand-500', subtitle, children }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
       <div>

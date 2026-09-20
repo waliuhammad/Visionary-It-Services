@@ -47,15 +47,15 @@ export default function Team() {
   return (
     <div className="max-w-4xl">
       <PageHeader
-        firstWord="Team &" secondWord="Roles" accentColor="text-amber-500"
+        firstWord="Team &" secondWord="Roles" accentColor="text-brand-500"
         subtitle="Manage access permissions for the command center"
       />
 
-      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-8">
-        <h4 className="font-bold text-amber-800 flex items-center gap-2 mb-2">
+      <div className="bg-brand-50 border border-brand-200 rounded-2xl p-5 mb-8">
+        <h4 className="font-bold text-brand-800 flex items-center gap-2 mb-2">
           <ShieldAlert className="w-4 h-4" /> Permission Scope
         </h4>
-        <p className="text-sm text-amber-700">
+        <p className="text-sm text-brand-700">
           <strong>Admins</strong> have full access to this dashboard, including changing other users' roles. <strong>Editors</strong> can upload images. <strong>Customers</strong> only use the public storefront. Role changes sign the user out so the new permissions apply on their next login.
         </p>
       </div>
@@ -86,12 +86,12 @@ export default function Team() {
                   <tr key={u.uid} className="border-b border-neutral-50 hover:bg-neutral-50/50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 font-bold font-display text-lg shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold font-display text-lg shrink-0">
                           {(u.fullName || u.email || '?').charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <p className="font-bold text-neutral-900">
-                            {u.fullName || 'Unnamed User'} {isSelf && <span className="ml-2 text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full uppercase tracking-wider">You</span>}
+                            {u.fullName || 'Unnamed User'} {isSelf && <span className="ml-2 text-[10px] bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full uppercase tracking-wider">You</span>}
                           </p>
                           <p className="text-xs text-neutral-500">{u.email}</p>
                         </div>
@@ -107,7 +107,7 @@ export default function Team() {
                         disabled={isSelf}
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider outline-none cursor-pointer transition-colors ${
                           u.role === 'admin'
-                            ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                            ? 'bg-brand-100 text-brand-700 hover:bg-brand-200'
                             : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                       >

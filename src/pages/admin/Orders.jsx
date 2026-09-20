@@ -6,12 +6,12 @@ import { api, errorMessage } from '../../lib/api'
 import { useLiveRefresh } from '../../context/RealtimeContext'
 
 const statusColors = {
-  pending: { bg: 'bg-amber-100', text: 'text-amber-700', icon: Clock },
+  pending: { bg: 'bg-brand-100', text: 'text-brand-700', icon: Clock },
   processing: { bg: 'bg-sky-100', text: 'text-sky-700', icon: Clock },
-  paid: { bg: 'bg-blue-100', text: 'text-blue-700', icon: CheckCircle },
-  shipped: { bg: 'bg-violet-100', text: 'text-violet-700', icon: Truck },
-  delivered: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: PackageCheck },
-  completed: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: PackageCheck },
+  paid: { bg: 'bg-brand-100', text: 'text-brand-700', icon: CheckCircle },
+  shipped: { bg: 'bg-brand-100', text: 'text-brand-700', icon: Truck },
+  delivered: { bg: 'bg-brand-100', text: 'text-brand-700', icon: PackageCheck },
+  completed: { bg: 'bg-brand-100', text: 'text-brand-700', icon: PackageCheck },
   cancelled: { bg: 'bg-red-100', text: 'text-red-700', icon: XCircle },
 }
 
@@ -50,7 +50,7 @@ export default function Orders() {
   return (
     <div>
       <PageHeader
-        firstWord="Manage" secondWord="Orders" accentColor="text-violet-500"
+        firstWord="Manage" secondWord="Orders" accentColor="text-brand-500"
         subtitle="Process and track customer shipments"
       />
 
@@ -99,7 +99,7 @@ export default function Orders() {
                     </div>
                     <div className="hidden sm:block">
                       <p className="text-xs text-neutral-400 mb-1">Total</p>
-                      <p className="text-sm font-bold text-emerald-600">Rs. {order.total?.toLocaleString()}</p>
+                      <p className="text-sm font-bold text-brand-600">Rs. {order.total?.toLocaleString()}</p>
                     </div>
                   </div>
 
@@ -126,7 +126,7 @@ export default function Orders() {
                           <p><span className="text-neutral-500 w-20 inline-block">Phone:</span>
                             {order.customer?.phone || '—'}
                             {order.customer?.phone && (
-                              <a href={`https://wa.me/${order.customer.phone.replace(/\D/g,'')}`} target="_blank" rel="noreferrer" className="ml-2 text-emerald-500 hover:underline text-xs">
+                              <a href={`https://wa.me/${order.customer.phone.replace(/\D/g,'')}`} target="_blank" rel="noreferrer" className="ml-2 text-brand-500 hover:underline text-xs">
                                 WhatsApp ↗
                               </a>
                             )}
@@ -149,7 +149,7 @@ export default function Orders() {
                               className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${
                                 order.status === s
                                   ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-                                  : 'bg-white border border-neutral-200 hover:border-violet-500 text-neutral-600 hover:text-violet-600'
+                                  : 'bg-white border border-neutral-200 hover:border-brand-500 text-neutral-600 hover:text-brand-600'
                               }`}
                             >
                               {s}
@@ -181,9 +181,9 @@ export default function Orders() {
                             <span className="text-neutral-500">Tax</span>
                             <span>Rs. {(order.tax || 0).toLocaleString()}</span>
                           </div>
-                          <div className="p-4 flex justify-between rounded-b-xl bg-violet-50">
-                            <span className="font-bold text-violet-900">Total</span>
-                            <span className="font-bold text-violet-700 text-lg">Rs. {order.total?.toLocaleString()}</span>
+                          <div className="p-4 flex justify-between rounded-b-xl bg-brand-50">
+                            <span className="font-bold text-brand-900">Total</span>
+                            <span className="font-bold text-brand-700 text-lg">Rs. {order.total?.toLocaleString()}</span>
                           </div>
                         </div>
                       </div>

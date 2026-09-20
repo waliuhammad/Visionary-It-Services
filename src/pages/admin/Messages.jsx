@@ -48,10 +48,10 @@ export default function Messages() {
   return (
     <div className="max-w-5xl">
       <PageHeader
-        firstWord="Contact" secondWord="Messages" accentColor="text-pink-500"
+        firstWord="Contact" secondWord="Messages" accentColor="text-brand-500"
         subtitle="Inquiries from the storefront contact form"
       >
-        <div className="bg-pink-100 text-pink-700 px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm">
+        <div className="bg-brand-100 text-brand-700 px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm">
           <Mail className="w-4 h-4" />
           {unreadCount === 0 ? 'NOTHING WAITING' : `${unreadCount} NEW`}
         </div>
@@ -64,17 +64,17 @@ export default function Messages() {
           <div className="bg-white rounded-3xl p-12 text-center shadow-sm text-neutral-500">No messages found.</div>
         ) : (
           messages.map(msg => (
-            <div key={msg.id} className={`bg-white rounded-2xl p-6 shadow-sm border-l-4 transition-all ${msg.read ? 'border-l-neutral-200' : 'border-l-pink-500 shadow-md'}`}>
+            <div key={msg.id} className={`bg-white rounded-2xl p-6 shadow-sm border-l-4 transition-all ${msg.read ? 'border-l-neutral-200' : 'border-l-brand-500 shadow-md'}`}>
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h3 className="font-bold text-neutral-900 text-lg">{msg.name}</h3>
                   {msg.subject && <p className="text-sm font-semibold text-neutral-700">{msg.subject}</p>}
-                  <a href={`mailto:${msg.email}`} className="text-sm text-pink-600 hover:underline">{msg.email}</a>
+                  <a href={`mailto:${msg.email}`} className="text-sm text-brand-600 hover:underline">{msg.email}</a>
                   <p className="text-[11px] text-neutral-400 mt-1">{new Date(msg.createdAt).toLocaleString()}</p>
                 </div>
                 <div className="flex gap-2">
                   {!msg.read && (
-                    <button onClick={() => handleMarkDone(msg.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-600 hover:bg-emerald-50 transition-colors">
+                    <button onClick={() => handleMarkDone(msg.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-brand-600 hover:bg-brand-50 transition-colors">
                       <Check className="w-3.5 h-3.5" /> Mark Done
                     </button>
                   )}

@@ -64,7 +64,7 @@ export default function Activity() {
   return (
     <div>
       <PageHeader
-        firstWord="Live" secondWord="Activity" accentColor="text-teal-500"
+        firstWord="Live" secondWord="Activity" accentColor="text-brand-500"
         subtitle="Everything happening on your store, as it happens"
       >
         <div className="bg-white rounded-2xl px-5 py-3 shadow-sm">
@@ -110,7 +110,7 @@ export default function Activity() {
         <section className="bg-white rounded-3xl p-6 shadow-sm h-fit xl:sticky xl:top-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-display font-bold text-neutral-900">On the site now</h3>
-            <span className="text-2xl font-display font-bold text-teal-600">{visitors.length}</span>
+            <span className="text-2xl font-display font-bold text-brand-600">{visitors.length}</span>
           </div>
           {visitors.length === 0 ? (
             <p className="text-sm text-neutral-400 py-6 text-center">No visitors right now.</p>
@@ -120,7 +120,7 @@ export default function Activity() {
                 const Icon = DEVICE_ICON[v.device] || Globe
                 return (
                   <li key={v.id} className="py-3 flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">
                       <Icon className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 flex-1">
